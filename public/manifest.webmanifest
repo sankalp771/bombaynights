@@ -1,0 +1,37 @@
+{
+  "name": "BombayNights",
+  "short_name": "BombayNights",
+  "description": "Everything open between 12 AM and 6 AM in Mumbai. Mira Road to Colaba.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0e15",
+  "theme_color": "#0b0e15",
+  "categories": ["food", "travel", "lifestyle"],
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open now",
+      "url": "/places",
+      "description": "Everything open right this minute"
+    },
+    {
+      "name": "Add a place",
+      "url": "/submit"
+    }
+  ]
+}

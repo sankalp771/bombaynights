@@ -149,3 +149,50 @@ Newest at the bottom. Format: `date — decision — why`.
 - **2026-08-16 — A lead about a place we already know files a report; it never edits.**
   And if that place is owner-verified, not even a report — a blog is likelier to be stale
   than the owner. Claimed timings are hearsay until a human confirms them.
+
+## Phase 3
+
+- **2026-08-16 — Cache the facts, compute the judgement.** The approved dataset is
+  server-cached for five minutes, but "open now" is never cached: it is recomputed in the
+  browser on a 30-second timer from a server-rendered starting timestamp. That is what
+  lets a page cached at 01:58 show "Closed" at 02:31 without a refresh, and it is the
+  reason the five-minute cache is safe at all.
+
+- **2026-08-16 — All list state lives in the URL.** `/places?area=bandra&tags=shisha_lounge,bar&open=all`
+  is the whole view. People decide where to go in a group chat, so every filtered view has
+  to be a link someone can paste.
+
+- **2026-08-16 — Unknown hours sort above closed, below open.** A place we cannot vouch
+  for is more useful than one we know is shut, but it must never outrank something we can
+  confirm — and its status line says "Hours unverified", never "open".
+
+- **2026-08-16 — Geolocation is opt-in and never leaves the browser.** No prompt on load;
+  it fires only when someone taps "Near me", a refusal falls through silently to the area
+  chips, and the coordinates are used locally to sort a list the browser already has.
+
+- **2026-08-16 — Leaflet is dynamically imported, CSS included.** Most visitors never open
+  the map, and the list has to work on one bar of network. `/places` first-load JS is
+  128 kB against the 150 kB budget, with Leaflet outside it entirely.
+
+- **2026-08-16 — Rate limiting stores `sha256(ip + daily-rotating salt)`, never an IP.**
+  The salt rotates at IST midnight, so the hash counts today's submissions and is useless
+  for following anyone across days. If the count query fails, the request is refused —
+  a dropped submission is recoverable, an open write endpoint is not.
+
+- **2026-08-16 — The honeypot returns 201, not an error.** Telling a bot it was blocked
+  just teaches it to try again.
+
+- **2026-08-16 — Timestamps are normalized in the Zod schema.** A direct `pg` connection
+  returns `Date` objects where PostgREST returns ISO strings; the build caught this. The
+  schema now preprocesses both into an ISO string so nothing downstream has to care which
+  driver it came from.
+
+- **2026-08-16 — "Opens 7 PM", not "Opens Sun 7 PM", when the next opening is today.**
+  `getOpenState` carries a `nextIsToday` flag, because naming today's own day reads as
+  "next week".
+
+- **2026-08-16 — A direct-Postgres read driver exists behind `BN_DB_DRIVER=postgres`.**
+  Production only ever talks to Supabase through RLS with the anon key. The `pg` path is
+  dynamically imported so it is never bundled otherwise, and it exists because this
+  sandbox's network policy blocks `*.supabase.co` — without it, none of Phase 3 could
+  have been run, screenshotted or verified.

@@ -340,6 +340,17 @@ describe('getOpenState — what the card actually renders', () => {
     expect(getOpenState(FRIDAY_ONLY, ist('2026-08-14T12:00'))).toEqual({
       kind: 'closed',
       next: { day: 'fri', time: '19:00' },
+      // Friday noon, opening Friday evening — the UI says "opens 7 PM", not
+      // "opens Fri 7 PM", because naming today's day reads as next week.
+      nextIsToday: true,
+    });
+  });
+
+  it('knows when the next opening is on a different day', () => {
+    expect(getOpenState(FRIDAY_ONLY, ist('2026-08-15T04:00'))).toEqual({
+      kind: 'closed',
+      next: { day: 'fri', time: '19:00' },
+      nextIsToday: false,
     });
   });
 });

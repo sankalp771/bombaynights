@@ -126,6 +126,21 @@ export const VISITOR_REPORT_REASONS: Array<{ value: ReportReason; label: string 
   { value: 'other', label: 'Something else' },
 ];
 
+/**
+ * Timestamps arrive as ISO strings over PostgREST but as `Date` objects from a
+ * direct `pg` connection. Normalize to an ISO string so everything downstream
+ * — including anything serialized into a client component — sees one shape.
+ */
+const timestamp = z.preprocess(
+  (value) => (value instanceof Date ? value.toISOString() : value),
+  z.string(),
+);
+
+const nullableTimestamp = z.preprocess(
+  (value) => (value instanceof Date ? value.toISOString() : value),
+  z.string().nullable(),
+);
+
 export const areaSchema = z.object({
   id: z.number().int(),
   slug: z.string(),
@@ -162,9 +177,9 @@ export const placeSchema = z.object({
   status: placeStatusSchema,
   source: placeSourceSchema,
   osm_id: z.string().nullable(),
-  verified_at: z.string().nullable(),
-  created_at: z.string(),
-  updated_at: z.string(),
+  verified_at: nullableTimestamp,
+  created_at: timestamp,
+  updated_at: timestamp,
 });
 
 export type Place = z.infer<typeof placeSchema>;

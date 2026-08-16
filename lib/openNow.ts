@@ -314,11 +314,17 @@ export type OpenState =
       minutesLeft: number;
       closingSoon: boolean;
     }
-  | { kind: 'closed'; next: NextOpening | null };
+  | { kind: 'closed'; next: NextOpening | null; nextIsToday: boolean };
 
 export function getOpenState(hours: WeeklyHours | null | undefined, date: Date): OpenState {
   if (!hours || toIntervals(hours).length === 0) return { kind: 'unknown' };
-  if (!isOpenAt(hours, date)) return { kind: 'closed', next: nextOpening(hours, date) };
+
+  if (!isOpenAt(hours, date)) {
+    const next = nextOpening(hours, date);
+    // "Opens 7 PM" reads better than "Opens Sun 7 PM" when today IS Sunday.
+    return { kind: 'closed', next, nextIsToday: next !== null && next.day === toIst(date).day };
+  }
+
   if (isAlwaysOpen(hours)) return { kind: 'always_open' };
 
   const closing = closesAt(hours, date);
