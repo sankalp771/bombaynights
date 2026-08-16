@@ -1,0 +1,314 @@
+{
+  "_comment": "A hand-built stand-in for an Overpass response, used by `npm run seed:osm -- --fixture=data/fixtures/overpass-sample.json`. It exists so the whole seed pipeline (parse, classify, dedupe, upsert, report) can be exercised offline and in CI without hitting the shared Overpass service. Coordinates are real; hours are illustrative and land as hours_verified=false like everything else the machine proposes.",
+  "version": 0.6,
+  "generator": "BombayNights fixture",
+  "elements": [
+    {
+      "type": "node",
+      "id": 1000001,
+      "lat": 18.9226,
+      "lon": 72.8322,
+      "tags": {
+        "name": "Bademiya",
+        "amenity": "fast_food",
+        "cuisine": "kebab;mughlai",
+        "opening_hours": "Mo-Su 19:00-04:00",
+        "addr:street": "Tulloch Road",
+        "addr:suburb": "Colaba",
+        "addr:city": "Mumbai",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000002,
+      "lat": 18.9345,
+      "lon": 72.8362,
+      "tags": {
+        "name": "Ayub's",
+        "amenity": "fast_food",
+        "cuisine": "kebab",
+        "opening_hours": "Mo-Sa 19:00-01:30; Su off",
+        "addr:suburb": "Fort"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000003,
+      "lat": 18.9092,
+      "lon": 72.8117,
+      "tags": {
+        "name": "Colaba Night Bar",
+        "amenity": "bar",
+        "addr:suburb": "Colaba"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000004,
+      "lat": 18.9241,
+      "lon": 72.8318,
+      "tags": {
+        "name": "Fort Day Canteen",
+        "amenity": "restaurant",
+        "opening_hours": "Mo-Sa 09:00-18:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000005,
+      "lat": 18.9505,
+      "lon": 72.8215,
+      "tags": {
+        "name": "Chowpatty Juice Centre",
+        "amenity": "fast_food",
+        "cuisine": "juice",
+        "opening_hours": "Mo-Su 16:00-01:30",
+        "diet:vegetarian": "only"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000006,
+      "lat": 18.9713,
+      "lon": 72.8177,
+      "tags": {
+        "name": "Sardar Pav Bhaji",
+        "amenity": "restaurant",
+        "cuisine": "pav_bhaji",
+        "opening_hours": "Mo-Su 12:00-15:30,18:00-01:30",
+        "diet:vegetarian": "only",
+        "addr:suburb": "Tardeo",
+        "phone": "+91 22 2353 6260"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000007,
+      "lat": 18.9628,
+      "lon": 72.8317,
+      "tags": {
+        "name": "Nagpada Kebab Corner",
+        "amenity": "fast_food",
+        "cuisine": "kebab;mughlai",
+        "opening_hours": "Mo-Su 20:00-05:00",
+        "diet:non-vegetarian": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 2000001,
+      "center": { "lat": 19.0012, "lon": 72.8235 },
+      "tags": {
+        "name": "Worli Sea Face Lounge",
+        "amenity": "bar",
+        "opening_hours": "We-Su 18:00-03:00",
+        "smoking:shisha": "yes",
+        "outdoor_seating": "rooftop"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000008,
+      "lat": 19.0176,
+      "lon": 72.818,
+      "tags": {
+        "name": "Worli Midnight Chai",
+        "amenity": "cafe",
+        "cuisine": "tea",
+        "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000009,
+      "lat": 19.0195,
+      "lon": 72.8441,
+      "tags": {
+        "name": "Dadar Late Udupi",
+        "amenity": "restaurant",
+        "cuisine": "south_indian",
+        "opening_hours": "Mo-Su 06:00-02:00",
+        "diet:vegetarian": "only"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000010,
+      "lat": 19.0596,
+      "lon": 72.8295,
+      "tags": {
+        "name": "Pali Village Bar",
+        "amenity": "pub",
+        "opening_hours": "Mo-Th 18:00-01:00; Fr-Sa 18:00-03:00; Su 18:00-01:00",
+        "addr:street": "Pali Naka",
+        "addr:suburb": "Bandra West"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000011,
+      "lat": 19.0525,
+      "lon": 72.8259,
+      "tags": {
+        "name": "Carter Road Rolls",
+        "amenity": "fast_food",
+        "cuisine": "rolls",
+        "opening_hours": "Mo-Su 18:00-02:30",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000012,
+      "lat": 19.0611,
+      "lon": 72.8342,
+      "tags": {
+        "name": "Bandra Shisha House",
+        "amenity": "hookah_lounge",
+        "addr:suburb": "Bandra East"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000013,
+      "lat": 19.0761,
+      "lon": 72.8395,
+      "tags": {
+        "name": "Khar Social Club",
+        "amenity": "bar",
+        "opening_hours": "Mo-Su 12:00-01:30",
+        "alcohol": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000014,
+      "lat": 19.1074,
+      "lon": 72.8266,
+      "tags": {
+        "name": "Juhu Beach Chaat",
+        "amenity": "fast_food",
+        "cuisine": "street_food",
+        "opening_hours": "Mo-Su 16:00-01:00",
+        "diet:vegetarian": "only"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000015,
+      "lat": 19.1301,
+      "lon": 72.8264,
+      "tags": {
+        "name": "Lokhandwala All Night Cafe",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000016,
+      "lat": 19.1189,
+      "lon": 72.8471,
+      "tags": {
+        "name": "Andheri Biryani House",
+        "amenity": "restaurant",
+        "cuisine": "biryani",
+        "opening_hours": "Mo-Su 11:00-03:00",
+        "phone": "+91 98200 11111;+91 98200 22222"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000017,
+      "lat": 19.1663,
+      "lon": 72.8526,
+      "tags": {
+        "name": "Goregaon Highway Dhaba",
+        "amenity": "restaurant",
+        "cuisine": "north_indian;dhaba",
+        "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000018,
+      "lat": 19.1875,
+      "lon": 72.8495,
+      "tags": {
+        "name": "Malad Link Road Grill",
+        "amenity": "restaurant",
+        "opening_hours": "Mo-Su 19:00-02:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000019,
+      "lat": 19.2307,
+      "lon": 72.8567,
+      "tags": {
+        "name": "Borivali Station Vada Pav",
+        "amenity": "fast_food",
+        "cuisine": "street_food",
+        "opening_hours": "Mo-Su 06:00-23:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000020,
+      "lat": 19.2952,
+      "lon": 72.8544,
+      "tags": {
+        "name": "Mira Road Tandoori Nights",
+        "amenity": "restaurant",
+        "cuisine": "north_indian",
+        "opening_hours": "Mo-Su 18:00-02:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000021,
+      "lat": 19.2496,
+      "lon": 72.859,
+      "tags": {
+        "name": "Dahisar Check Naka Dhaba",
+        "amenity": "restaurant",
+        "cuisine": "dhaba",
+        "opening_hours": "Mo-Su 00:00-24:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000022,
+      "lat": 19.2183,
+      "lon": 72.9781,
+      "tags": {
+        "name": "Thane Out Of Scope Bar",
+        "amenity": "bar",
+        "opening_hours": "Mo-Su 19:00-02:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000023,
+      "lat": 19.062,
+      "lon": 72.8311,
+      "tags": {
+        "amenity": "restaurant",
+        "opening_hours": "Mo-Su 19:00-02:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1000024,
+      "lat": 19.0655,
+      "lon": 72.8402,
+      "tags": {
+        "name": "Broken Hours Bandra",
+        "amenity": "restaurant",
+        "opening_hours": "whenever the owner feels like it"
+      }
+    }
+  ]
+}

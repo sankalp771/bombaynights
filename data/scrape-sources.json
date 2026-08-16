@@ -1,0 +1,24 @@
+{
+  "_comment": "Owner-maintained list of editorial blog posts to mine for late-night place LEADS (docs/03 Inlet 4). Leads always land in the pending submissions queue — never directly in `places`. Add URLs of human-curated listicles you trust. NEVER add Zomato, Swiggy, Google Maps, TripAdvisor or any platform whose terms prohibit scraping; the run refuses those hosts outright.",
+  "_rules": [
+    "Editorial blog posts only — never a listings platform.",
+    "robots.txt is checked and obeyed for every URL before it is fetched.",
+    "At least 5 seconds between requests, identified as BombayNights-leads/1.0.",
+    "Only the place name, locality and claimed timing are kept. No prose, no images, no rankings.",
+    "Claimed timings are hints for you to verify, never published as fact."
+  ],
+  "sources": [
+    {
+      "url": "https://lbb.in/mumbai/late-night-food-places-mumbai/",
+      "note": "LBB Mumbai late-night roundup"
+    },
+    {
+      "url": "https://www.curlytales.com/late-night-food-places-in-mumbai/",
+      "note": "Curly Tales late-night eateries"
+    },
+    {
+      "url": "https://www.tripoto.com/mumbai/trips/late-night-food-in-mumbai",
+      "note": "Tripoto community roundup"
+    }
+  ]
+}

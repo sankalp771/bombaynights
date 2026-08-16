@@ -1,0 +1,62 @@
+{
+  "name": "bombaynights",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:tz": "TZ=UTC vitest run && TZ=America/New_York vitest run && TZ=Asia/Kolkata vitest run",
+    "db:push": "tsx scripts/db-push.ts",
+    "seed:areas": "tsx scripts/seed-areas.ts",
+    "seed:osm": "tsx scripts/seed-osm.ts",
+    "seed:manual": "tsx scripts/seed-manual.ts",
+    "scrape:leads": "tsx scripts/scrape-leads.ts",
+    "rls:test": "tsx scripts/test-rls.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "cheerio": "^1.2.0",
+    "csv-parse": "^7.0.2",
+    "leaflet": "^1.9.4",
+    "next": "^15.1.6",
+    "opening_hours": "^3.14.0",
+    "pg": "^8.23.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^22.10.7",
+    "@types/pg": "^8.21.0",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "dotenv": "^16.6.1",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^15.1.6",
+    "eslint-config-prettier": "^9.1.0",
+    "playwright": "^1.62.1",
+    "postcss": "^8.5.1",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.10",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

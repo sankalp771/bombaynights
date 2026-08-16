@@ -24,3 +24,8 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+scripts/output/*
+!scripts/output/.gitkeep
+
+# TS incremental build info
+*.tsbuildinfo

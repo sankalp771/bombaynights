@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+
+/*
+ * BombayNights design tokens (docs/04 § Design direction).
+ * Mumbai street at 1 AM: sodium-vapour streetlights and neon signage against a
+ * deep warm night. Dark is the ONLY theme — there is no light mode.
+ *
+ * Everything downstream derives from these ~5 colours. Do not introduce new
+ * hex values in components; add a token here instead.
+ */
+@theme {
+  /* Base — night sky over the sea link: near-black, warm-leaning blue */
+  --color-night: #0b0e15;
+  --color-night-raised: #141926;
+  --color-night-edge: #232a3a;
+
+  /* Primary accent — sodium-vapour streetlight */
+  --color-sodium: #ffa928;
+  --color-sodium-dim: #b8761a;
+
+  /* Secondary accent — bar signage neon. Use sparingly. */
+  --color-neon: #ff3d81;
+
+  /* Text — warm off-white, never pure #fff */
+  --color-cream: #f4ede2;
+  --color-cream-muted: #9d9689;
+
+  /* Reserved EXCLUSIVELY for "open now". Never decorative. */
+  --color-open: #5bc98c;
+
+  /* Type */
+  --font-display: var(--font-baloo), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+
+  /* Motion */
+  --animate-flicker-on: flicker-on 900ms ease-out 1;
+}
+
+@keyframes flicker-on {
+  0% {
+    opacity: 0.15;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  18% {
+    opacity: 0.2;
+  }
+  32% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0.45;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-night);
+    color: var(--color-cream);
+    font-family: var(--font-body);
+    /* Drunk-thumb test: never let a stray horizontal scroll appear. */
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+
+  /* Every clock time in this app is tabular (docs/04). */
+  time,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Visible focus, always. Outdoors at 1 AM people mis-tap. */
+  :focus-visible {
+    outline: 2px solid var(--color-sodium);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-sodium);
+    color: var(--color-night);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * The signature element: the status line, treated like a small neon sign.
+ * This is the product promise made visual — used on every card. Spend the
+ * boldness here and keep everything else quiet.
+ */
+@utility neon-open {
+  color: var(--color-open);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--color-open) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--color-open) 25%, transparent);
+}
+
+@utility neon-soon {
+  color: var(--color-sodium);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--color-sodium) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--color-sodium) 25%, transparent);
+}
+
+@utility neon-closed {
+  color: var(--color-cream-muted);
+  text-shadow: none;
+}
