@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Baloo_Bhaijaan_2, IBM_Plex_Sans } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { SiteFooter } from '@/components/SiteFooter';
+import { getSiteUrl } from '@/lib/siteUrl';
 
 /*
  * Display face: Baloo Bhaijaan 2 (Ek Type / Indian Type Foundry) — warm,
@@ -24,7 +26,7 @@ const plex = IBM_Plex_Sans({
   display: 'swap',
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -80,6 +82,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-dvh flex-col antialiased">
         <div className="flex-1">{children}</div>
         <SiteFooter />
+        {/*
+          Page views only — custom events are Pro-only on Vercel, and the Hobby
+          allowance is 50k events/month. Because every place has its own URL,
+          per-place popularity still falls out of plain page views.
+          Self-hosted by Vercel, so it costs one small first-party request and
+          no cookie banner.
+        */}
+        <Analytics />
       </body>
     </html>
   );

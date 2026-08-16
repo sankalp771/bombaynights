@@ -1,0 +1,199 @@
+name: Monthly OSM refresh
+
+# Re-reads OpenStreetMap for all 13 corridor areas and reconciles it with the
+# database, then files the run's markdown report as a GitHub issue.
+#
+# Refresh rules live in docs/03 and are implemented in scripts/seed-osm.ts
+# (`--diff`). The short version — machines propose, the owner disposes:
+#   · new in OSM                        → inserted as `pending`
+#   · changed, hours_verified = false   → updated in place
+#   · changed, hours_verified = true    → NOT touched; an `osm_hours_drifted`
+#                                         report is filed for the owner
+#   · gone from OSM                     → never deleted; reported only
+#
+# Nothing user-facing depends on this job. If Overpass is down the affected
+# areas are simply skipped and the report says so.
+
+on:
+  schedule:
+    # 22:00 UTC on the 1st = 03:30 IST — the quiet end of BombayNights' own
+    # peak hours, and well clear of Overpass's busy period.
+    - cron: '0 22 1 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch and report, write nothing to the database'
+        type: boolean
+        default: false
+      area:
+        description: 'Refresh a single area slug only (e.g. byculla-mumbai-central). Blank = all 13.'
+        type: string
+        default: ''
+
+# Only one refresh at a time. Two concurrent runs would race on the same rows
+# and double-file drift reports.
+concurrency:
+  group: monthly-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # A full 13-area run takes 15-30 minutes because Overpass is rate-limited
+    # and the script backs off between areas.
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Refresh from OpenStreetMap
+        id: refresh
+        # Keep going on failure so the report still gets filed — a half-finished
+        # run is exactly the kind of thing the owner needs to see.
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Deliberately NOT setting SUPABASE_DB_URL. The seed scripts prefer a
+          # direct Postgres URL whenever they see one, and GitHub runners cannot
+          # open outbound port 5432 to Supabase — it would hang, then fail. The
+          # PostgREST path over HTTPS is the one that works here.
+          #
+          # Inputs go through the environment, never interpolated into the
+          # script body: `${{ inputs.area }}` spliced into a shell line is a
+          # command-injection hole.
+          DRY_RUN: ${{ inputs.dry_run }}
+          AREA: ${{ inputs.area }}
+        run: |
+          set -euo pipefail
+
+          args=(--diff)
+
+          # Not `[ … ] && args+=(…)`: under `set -e` a false test makes that
+          # whole statement the failing command and kills the step.
+          if [ "${DRY_RUN:-false}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          if [ -n "${AREA:-}" ]; then
+            # Area slugs are lowercase words and hyphens. Refuse anything else
+            # rather than passing it along.
+            if ! printf '%s' "$AREA" | grep -Eq '^[a-z0-9-]+$'; then
+              echo "Invalid area slug: $AREA" >&2
+              exit 1
+            fi
+            args+=("--area=$AREA")
+          fi
+
+          npm run seed:osm -- "${args[@]}" 2>&1 | tee refresh.log
+
+      - name: Keep the report even if the issue step fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refresh-report
+          path: |
+            scripts/output/seed-report.md
+            refresh.log
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: File the report as an issue
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          REFRESH_OUTCOME: ${{ steps.refresh.outcome }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          AREA: ${{ inputs.area }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const LABEL = 'refresh-report';
+            const failed = process.env.REFRESH_OUTCOME !== 'success';
+            const runUrl =
+              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+              `/actions/runs/${context.runId}`;
+
+            let report;
+            try {
+              report = fs.readFileSync('scripts/output/seed-report.md', 'utf8');
+            } catch {
+              // The script died before it could write anything. The log is all
+              // we have, and it is still worth filing.
+              let log = '';
+              try {
+                log = fs.readFileSync('refresh.log', 'utf8').slice(-8000);
+              } catch {}
+              report =
+                '# OSM refresh report\n\n' +
+                'The refresh failed before it produced a report.\n\n' +
+                (log ? '```\n' + log + '\n```\n' : '_No log captured._\n');
+            }
+
+            const notes = [];
+            if (failed) {
+              notes.push(
+                '> ⚠️ **The refresh step did not exit cleanly.** Anything below ' +
+                  'reflects only the part of the run that completed. ' +
+                  `[Full log](${runUrl})`,
+              );
+            }
+            if (process.env.DRY_RUN === 'true') {
+              notes.push('> 🧪 **Dry run** — nothing was written to the database.');
+            }
+            if (process.env.AREA) {
+              notes.push(`> 📍 Single-area run: \`${process.env.AREA}\`.`);
+            }
+
+            let body = [...notes, notes.length ? '' : null, report, '', `[Workflow run](${runUrl})`]
+              .filter((part) => part !== null)
+              .join('\n');
+
+            // GitHub rejects issue bodies over 65536 characters.
+            const LIMIT = 65000;
+            if (body.length > LIMIT) {
+              body =
+                body.slice(0, LIMIT) +
+                `\n\n_…truncated. Full report is in the run's artifacts: ${runUrl}_\n`;
+            }
+
+            // The label has to exist before it can be applied.
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: LABEL });
+            } catch {
+              await github.rest.issues.createLabel({
+                ...context.repo,
+                name: LABEL,
+                color: '5319e7',
+                description: 'Automated monthly OSM refresh reports',
+              });
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            const { data: issue } = await github.rest.issues.create({
+              ...context.repo,
+              title: `OSM refresh — ${today}${failed ? ' (incomplete)' : ''}`,
+              body,
+              labels: [LABEL],
+            });
+
+            core.notice(`Filed ${issue.html_url}`);
+
+      # Surface the failure now that the report is safely filed.
+      - name: Fail the job if the refresh failed
+        if: steps.refresh.outcome != 'success'
+        run: |
+          echo "The refresh step failed — see the filed issue and the log above."
+          exit 1
