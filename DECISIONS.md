@@ -287,3 +287,55 @@ Newest at the bottom. Format: `date — decision — why`.
   deployed project, stricter: it exercises the exact surface a hostile visitor has, where
   an exposed view or a forgotten grant would show up and a SQL-level test would not.
   15/15 pass against the real project.
+
+## Phase 5
+
+- **2026-08-16 — The canonical site URL resolves through a fallback chain and treats
+  template values as unset.** Production shipped with
+  `NEXT_PUBLIC_SITE_URL=https://CHANGE-ME.vercel.app` and published a 27-URL sitemap, a
+  `robots.txt` and every canonical/OG tag pointing at a domain that does not exist. The
+  failure was invisible: all pages rendered perfectly, only crawlers saw it.
+  `lib/siteUrl.ts` now falls back `NEXT_PUBLIC_SITE_URL` →
+  `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → localhost, and rejects hostnames
+  containing obvious placeholders (`change-me`, `your-domain`, `example.com`, `todo`) so
+  an unfilled template can never outrank the domain Vercel itself reports. On Vercel the
+  variable is now optional — the boring, robust choice is for the deploy to know its own
+  name rather than to be told. Verified by building with the placeholder still set: the
+  sitemap emits `bombaynights.vercel.app`.
+
+- **2026-08-16 — Vercel Web Analytics, page views only; no custom event tracking.** The
+  owner wants visit counts and click behaviour, with restaurant promotion as a possible
+  future. Custom events (a directions tap, a phone tap) are **Pro-only** on Vercel —
+  Hobby gets 50k page-view events/month and a 1-month reporting window. Since every place
+  has its own URL, per-place popularity still falls out of plain page views, which covers
+  the immediate question at ₹0. **Upgrade path when promotion becomes real:** a
+  first-party counter table in Supabase (`place_id`, `event`, `day`, `count`) written
+  through the existing server routes. That owns the per-restaurant numbers outright,
+  survives ad-blockers better than any third-party script, and has no vendor tier gating
+  it — which matters if those numbers are ever the product.
+
+- **2026-08-16 — `@vercel/analytics` is installed past a spurious peer conflict.** npm
+  10.9 walks the package's *optional* `@sveltejs/kit` peer, pulls `vite@8` and collides
+  with vitest's `vite@5` — for a framework this repo will never use. Installed with
+  `--legacy-peer-deps`; the resulting lockfile was then verified to install cleanly under
+  a from-scratch `npm ci`, which is what Vercel actually runs. No `.npmrc` was added, so
+  the looser resolution does not leak into every future install.
+
+- **2026-08-16 — The refresh workflow passes its inputs through the environment and
+  validates the area slug.** `${{ inputs.area }}` interpolated into a `run:` block is a
+  command-injection hole, even when only writers can dispatch it. The slug is matched
+  against `^[a-z0-9-]+$` and the job fails closed on anything else. The dispatch also
+  takes a `dry_run` toggle, so the first manual run can prove the wiring without writing
+  to the database.
+
+- **2026-08-16 — The refresh job files its report even when the run fails.** The seed
+  step is `continue-on-error`, the report is uploaded as an artifact and filed as an
+  issue, and only then does a final step fail the job. A half-finished refresh is exactly
+  what the owner needs to see; losing the report because the job aborted would be the
+  worst outcome. Issue bodies are truncated at 65k characters, pointing at the artifact.
+
+- **2026-08-16 — No weekly Supabase keep-alive ping, per docs/06's condition.** Free-tier
+  projects pause after ~1 week of inactivity, but docs/06 says to add the ping only *if
+  pausing is observed*. Real traffic plus the monthly refresh should hold it open. The
+  one-line fix is documented in the README's "Things that will bite you" so the next
+  person does not have to rediscover it.
