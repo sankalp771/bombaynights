@@ -25,6 +25,26 @@ export const submissionSchema = z
     hours: weeklyHoursSchema,
     phone: shortText(30).optional().or(z.literal('')),
     notes: shortText(400).optional().or(z.literal('')),
+    /**
+     * A link to a photo, not an upload — we host nothing in V1. Restricted to
+     * http(s) so a `javascript:` or `data:` URL can never reach an `href` in
+     * the admin.
+     */
+    photo_url: z
+      .string()
+      .trim()
+      .max(500)
+      .url()
+      .refine((value) => /^https?:\/\//i.test(value), 'Photo link must start with http')
+      .optional()
+      .or(z.literal('')),
+    /**
+     * Credit and contact, both optional. Anonymous submission is the promise
+     * (CLAUDE.md), so these can never become required — they exist for people
+     * who *want* to be reachable, and the contact is never shown publicly.
+     */
+    submitter_name: shortText(80).optional().or(z.literal('')),
+    submitter_contact: shortText(120).optional().or(z.literal('')),
     /** Set when the visitor is correcting an existing place. */
     correction_for: shortText(120).optional().or(z.literal('')),
     /**

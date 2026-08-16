@@ -119,6 +119,42 @@ describe('POST /api/submit', () => {
     expect(store.submissions).toHaveLength(0);
   });
 
+  it('stores an optional photo link and contributor credit', async () => {
+    const response = await POST(
+      request({
+        ...VALID,
+        photo_url: 'https://i.postimg.cc/abc/signboard.jpg',
+        submitter_name: 'Rohan',
+        submitter_contact: '@rohan_eats',
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(store.submissions[0]?.payload.photo_url).toBe('https://i.postimg.cc/abc/signboard.jpg');
+    expect(store.submissions[0]?.payload.submitter_name).toBe('Rohan');
+    expect(store.submissions[0]?.payload.submitter_contact).toBe('@rohan_eats');
+  });
+
+  it('still accepts a fully anonymous submission with no photo', async () => {
+    // Anonymous submission is the product promise; none of the new fields may
+    // become required by accident.
+    const response = await POST(
+      request({ ...VALID, photo_url: '', submitter_name: '', submitter_contact: '' }),
+    );
+    expect(response.status).toBe(201);
+    expect(store.submissions).toHaveLength(1);
+  });
+
+  it('refuses a photo link that is not http(s)', async () => {
+    // A `javascript:` URL would end up in an href in the admin.
+    for (const bad of ['javascript:alert(1)', 'data:text/html,<script>', 'not-a-url']) {
+      store.submissions = [];
+      const response = await POST(request({ ...VALID, photo_url: bad }));
+      expect(response.status, bad).toBe(422);
+      expect(store.submissions).toHaveLength(0);
+    }
+  });
+
   it('rejects a submission with no categories', async () => {
     const response = await POST(request({ ...VALID, categories: [] }));
     expect(response.status).toBe(422);
