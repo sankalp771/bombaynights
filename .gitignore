@@ -26,3 +26,6 @@ Thumbs.db
 .idea/
 scripts/output/*
 !scripts/output/.gitkeep
+
+# TS incremental build info
+*.tsbuildinfo
