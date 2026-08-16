@@ -37,7 +37,10 @@ async function main(): Promise<void> {
     connectionString: url,
     // Supabase terminates TLS with its own chain; verifying it adds nothing
     // here and breaks on some CI images.
-    ssl: url.includes('localhost') || url.includes('127.0.0.1') ? false : { rejectUnauthorized: false },
+    ssl:
+      url.includes('localhost') || url.includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false },
     connectionTimeoutMillis: 20_000,
   });
 

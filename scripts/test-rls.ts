@@ -60,7 +60,8 @@ const checks: Check[] = [
     run: async (client) => {
       const { rows } = await client.query<{ count: string }>('select count(*)::text from places');
       // Only the approved fixture should be visible.
-      if (rows[0]?.count !== '1') throw new Error(`count(*) returned ${rows[0]?.count}, expected 1`);
+      if (rows[0]?.count !== '1')
+        throw new Error(`count(*) returned ${rows[0]?.count}, expected 1`);
     },
   },
   {
@@ -73,7 +74,8 @@ const checks: Check[] = [
   },
   {
     name: 'anon CANNOT update a place',
-    run: (client) => mustFail(client, "update places set name = 'Owned' where slug = 'rls-approved'"),
+    run: (client) =>
+      mustFail(client, "update places set name = 'Owned' where slug = 'rls-approved'"),
   },
   {
     name: 'anon CANNOT promote a pending place to approved',
@@ -179,7 +181,9 @@ async function main(): Promise<void> {
 
   const failed = results.filter((result) => !result.ok);
   for (const result of results) {
-    console.log(`${result.ok ? '  ok  ' : '  FAIL'} ${result.name}${result.detail ? ` — ${result.detail}` : ''}`);
+    console.log(
+      `${result.ok ? '  ok  ' : '  FAIL'} ${result.name}${result.detail ? ` — ${result.detail}` : ''}`,
+    );
   }
   console.log(`\n${results.length - failed.length}/${results.length} RLS checks passed.`);
 

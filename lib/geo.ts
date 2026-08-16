@@ -53,10 +53,7 @@ export interface BoundingBox {
 
 export function boundingBoxContains(box: BoundingBox, point: LatLng): boolean {
   return (
-    point.lat >= box.south &&
-    point.lat < box.north &&
-    point.lng >= box.west &&
-    point.lng < box.east
+    point.lat >= box.south && point.lat < box.north && point.lng >= box.west && point.lng < box.east
   );
 }
 

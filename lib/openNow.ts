@@ -255,10 +255,7 @@ export interface NextOpening {
  * "Opens 7 PM" state. `null` when the hours are unknown or the place is never
  * open.
  */
-export function nextOpening(
-  hours: WeeklyHours | null | undefined,
-  date: Date,
-): NextOpening | null {
+export function nextOpening(hours: WeeklyHours | null | undefined, date: Date): NextOpening | null {
   const intervals = toIntervals(hours);
   if (intervals.length === 0) return null;
   if (isAlwaysOpen(hours)) return null;
@@ -310,7 +307,13 @@ export function isLateNight(hours: WeeklyHours | null | undefined): boolean {
 export type OpenState =
   | { kind: 'unknown' }
   | { kind: 'always_open' }
-  | { kind: 'open'; closesAt: string; overnight: boolean; minutesLeft: number; closingSoon: boolean }
+  | {
+      kind: 'open';
+      closesAt: string;
+      overnight: boolean;
+      minutesLeft: number;
+      closingSoon: boolean;
+    }
   | { kind: 'closed'; next: NextOpening | null };
 
 export function getOpenState(hours: WeeklyHours | null | undefined, date: Date): OpenState {

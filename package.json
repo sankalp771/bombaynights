@@ -27,7 +27,10 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "cheerio": "^1.2.0",
+    "csv-parse": "^7.0.2",
     "next": "^15.1.6",
+    "opening_hours": "^3.14.0",
     "pg": "^8.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

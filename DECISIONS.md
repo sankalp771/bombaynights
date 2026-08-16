@@ -96,3 +96,56 @@ Newest at the bottom. Format: `date — decision — why`.
   A seeder that only knows a place's hours must not blank out the phone number the owner
   typed in. Omitted columns keep their stored value; this is the mechanism behind
   "machines propose, the owner disposes".
+
+## Phase 2
+
+- **2026-08-16 — OSM `opening_hours` is evaluated, not parsed.** The syntax is a small
+  language (`Mo-Th 19:00-01:00; Fr-Sa 19:00-03:00; Su off`, `24/7`, `sunset-sunrise`,
+  month ranges). Reimplementing it would be a bug farm, so we hand the string to the
+  reference implementation, ask when the place is open across one reference week, and
+  read the answer back into our own format. The reference week is built with the *local*
+  Date constructor and read back with local getters, so the result is identical under any
+  `TZ` — verified under UTC, America/New_York and Australia/Lord_Howe (a half-hour DST
+  zone).
+
+- **2026-08-16 — We keep OSM's rule-override semantics even though they under-state
+  closing times, and flag the affected rows.** In `opening_hours` syntax a later rule
+  replaces the previous day's spill past midnight, so `Mo-Th 18:00-01:00; Fr-Sa
+  18:00-03:00; Su 18:00-01:00` genuinely evaluates with Thursday and Saturday closing at
+  00:00. The reference implementation is right by the spec; the mapper almost certainly
+  meant a later close. We keep the spec-correct answer because under-stating a closing
+  time is the safe direction for a product promising "if we say open, it's open" — and
+  the seed report now lists every place with a window ending at exactly midnight under
+  "Verify these first", since that is the fingerprint of this truncation.
+
+- **2026-08-16 — Seed scripts accept `--fixture`.** The full pipeline — parse, classify,
+  dedupe, upsert, report — runs against a saved Overpass response with no network. That
+  makes the seeder testable in CI, developable offline, and kind to a free shared service
+  we would otherwise hammer during development. `data/fixtures/overpass-sample.json` ships
+  as the offline sample.
+
+- **2026-08-16 — `shop=convenience` rows keep an empty category list.** docs/03 includes
+  them in the Overpass query, but the fixed category vocabulary has no term for a corner
+  shop and inventing one ("fast_food") would be a lie. They land as pending with no
+  categories for the owner to tag or reject.
+
+- **2026-08-16 — Manual rows take over the matching OSM row rather than shadowing it.**
+  When a CSV row matches a seeded OSM place by name within 150 m, the seeder updates
+  *that* row — keeping its `osm_id` so future refreshes still diff correctly — instead of
+  creating a second row that would show up twice in the list.
+
+- **2026-08-16 — The dedupe radius is 150 m and names are compared after stripping chain
+  noise.** Mumbai has genuinely distinct outlets of the same name a few hundred metres
+  apart, so a tight radius plus "a duplicate the owner can archive in one tap" beats a
+  loose radius that silently merges two real places.
+
+- **2026-08-16 — The lead scraper refuses listings platforms in code, not just in docs.**
+  Zomato, Swiggy, Google, TripAdvisor, Yelp, Dineout, EazyDiner and magicpin are rejected
+  by hostname even if someone adds them to `data/scrape-sources.json`. robots.txt is
+  fetched and obeyed per URL, requests are ≥ 5 s apart under a `BombayNights-leads/1.0`
+  agent, and only name / locality / claimed timing are retained — never article prose,
+  images or rankings.
+
+- **2026-08-16 — A lead about a place we already know files a report; it never edits.**
+  And if that place is owner-verified, not even a report — a blog is likelier to be stale
+  than the owner. Claimed timings are hearsay until a human confirms them.
