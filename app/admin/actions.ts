@@ -75,7 +75,7 @@ export async function sendLoginCode(
 
   const sent: ActionResult = {
     ok: true,
-    message: 'If that address is the admin, a 6-digit code is on its way. It expires in an hour.',
+    message: 'If that address is the admin, the sign-in code is on its way. It expires in an hour.',
   };
 
   if (!z.string().email().safeParse(email).success) {
@@ -105,7 +105,12 @@ export async function verifyLoginCode(
   const token = String(formData.get('token') ?? '').trim();
 
   if (!isAdminEmail(email)) return { ok: false, message: 'That code did not work.' };
-  if (!/^\d{6}$/.test(token)) return { ok: false, message: 'The code is six digits.' };
+  // Supabase's OTP length is a per-project setting (6 by default, 8 on this
+  // project) and can be changed in the dashboard without a deploy. Accept any
+  // plausible length rather than hard-coding one and locking the owner out.
+  if (!/^\d{6,10}$/.test(token)) {
+    return { ok: false, message: 'That code should be the digits from the email, nothing else.' };
+  }
 
   const supabase = await createSessionClient();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });

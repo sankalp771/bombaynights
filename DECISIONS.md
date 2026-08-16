@@ -287,3 +287,20 @@ Newest at the bottom. Format: `date — decision — why`.
   deployed project, stricter: it exercises the exact surface a hostile visitor has, where
   an exposed view or a forgotten grant would show up and a SQL-level test would not.
   15/15 pass against the real project.
+
+## Phase 4 — follow-ups found while preparing to deploy
+
+- **2026-08-16 — The OTP field accepts 6–10 digits, not exactly 6.** Supabase's
+  `mailer_otp_length` is a per-project setting that can be changed in the dashboard
+  without a deploy, and this project issues **8**. The original `\d{6}` rule would have
+  rejected every real login in production. The earlier end-to-end test missed it because
+  it redeemed codes through Supabase's admin API, bypassing our own validation — a
+  reminder that a test which skips the form does not test the form.
+
+- **2026-08-16 — The code box opens after any send attempt, and there is an "I already
+  have a code" way in regardless.** Supabase's built-in mailer allows two emails an hour.
+  Showing the code box only on a *successful* send meant: ask for a code, get impatient,
+  ask again, hit the limit — and now the box is hidden at the exact moment the first code
+  lands in the inbox. That is a one-hour lockout from your own admin while holding a
+  valid code. The rate-limit message now says what the cap is and that an existing code
+  still works. Proven by signing in while actually rate-limited.
