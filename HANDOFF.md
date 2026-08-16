@@ -57,6 +57,31 @@ blocked `*.supabase.co`; everything below is now verified against the real thing
   `.next/static`.
 - No horizontal overflow at 390 px on any admin page or `/submit`.
 
+## Deployed
+
+Production: **https://bombaynights.vercel.app** (Vercel Hobby, phases 0–4).
+
+Supabase auth is pointed at it — `site_url` and `uri_allow_list` were updated via
+the Management API on 2026-08-16.
+
+Five environment variables belong in Vercel, all three environments:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAIL`, `NEXT_PUBLIC_SITE_URL`.
+
+**`SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_URL` must NOT be set in Vercel.** The
+first is migration tooling (it belongs as a GitHub secret for the Phase 5
+refresh Action); the second would flip `lib/data.ts` to the direct-Postgres
+driver, which Vercel cannot reach — the site would fail to read any data.
+
+`NEXT_PUBLIC_SITE_URL` is baked into `robots.txt`, `sitemap.xml` and the OG tags
+at **build** time, so changing it needs a redeploy, not just a settings save.
+
+⚠️ **This sandbox exports `NEXT_PUBLIC_SITE_URL=http://localhost:3000` as a real
+environment variable, and real env vars beat `.env.local` in Next.js.** A build
+run here bakes localhost into the sitemap no matter what `.env.local` says.
+Build with `env -u NEXT_PUBLIC_SITE_URL npm run build` when checking production
+output. Vercel has no such override, so this never affects the deployed site.
+
 ## Credentials
 
 `.env.local` and `.env.db.local` are gitignored and **do not exist in a fresh
