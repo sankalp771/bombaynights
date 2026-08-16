@@ -22,7 +22,8 @@
     "seed:osm": "tsx scripts/seed-osm.ts",
     "seed:manual": "tsx scripts/seed-manual.ts",
     "scrape:leads": "tsx scripts/scrape-leads.ts",
-    "rls:test": "tsx scripts/test-rls.ts"
+    "rls:test": "tsx scripts/test-rls.ts",
+    "rls:test:live": "tsx scripts/test-rls-live.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

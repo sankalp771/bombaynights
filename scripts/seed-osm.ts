@@ -11,6 +11,7 @@ import {
   type SkipReason,
 } from './lib/osmMap';
 import { findDuplicate } from './lib/dedupe';
+import { SlugAllocator } from './lib/slugAllocator';
 import { hasMidnightTruncation } from './lib/osmHours';
 import type { Area, Place } from '@/lib/types';
 
@@ -98,6 +99,9 @@ async function main(): Promise<void> {
   const byOsmId = new Map(
     existingPlaces.filter((place) => place.osm_id).map((place) => [place.osm_id as string, place]),
   );
+  const slugs = new SlugAllocator(
+    existingPlaces.map((place) => ({ slug: place.slug, key: place.osm_id })),
+  );
 
   const stats: AreaStats[] = [];
   const seenOsmIds = new Set<string>();
@@ -181,14 +185,21 @@ async function main(): Promise<void> {
       const areaId = areaIdBySlug.get(area.slug) ?? null;
 
       if (!existing) {
-        toUpsert.push(toRow(candidate, areaId));
+        toUpsert.push(toRow(candidate, areaId, slugs.allocate(candidate.slug, candidate.osm_id)));
         areaStats.inserted += 1;
         continue;
       }
 
       if (!diffMode) {
         // A plain re-run is idempotent: refresh the machine-owned fields only.
-        toUpsert.push(toRow(candidate, areaId, existing));
+        toUpsert.push(
+          toRow(
+            candidate,
+            areaId,
+            slugs.allocate(candidate.slug, candidate.osm_id, existing.slug),
+            existing,
+          ),
+        );
         areaStats.updated += 1;
         continue;
       }
@@ -209,7 +220,14 @@ async function main(): Promise<void> {
       }
 
       if (drifted || tagsDiffer(existing.categories, candidate.categories)) {
-        toUpsert.push(toRow(candidate, areaId, existing));
+        toUpsert.push(
+          toRow(
+            candidate,
+            areaId,
+            slugs.allocate(candidate.slug, candidate.osm_id, existing.slug),
+            existing,
+          ),
+        );
         areaStats.updated += 1;
       }
     }
@@ -264,9 +282,14 @@ async function main(): Promise<void> {
   }
 }
 
-function toRow(place: MappedPlace, areaId: number | null, existing?: Place): PlaceUpsert {
+function toRow(
+  place: MappedPlace,
+  areaId: number | null,
+  slug: string,
+  existing?: Place,
+): PlaceUpsert {
   return {
-    slug: existing?.slug ?? place.slug,
+    slug,
     name: place.name,
     area_id: areaId,
     address: place.address,

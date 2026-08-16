@@ -230,6 +230,61 @@ export const PUBLIC_PLACE_COLUMNS = [
   'verified_at',
 ].join(',');
 
+/**
+ * What a visitor sent in. Stored as jsonb, so it is validated on the way *out*
+ * as well as in: a row written by an older version of the form must never crash
+ * the moderation queue. Anything unrecognised is dropped, and every field is
+ * optional here even though the form requires most of them.
+ */
+export const submissionPayloadSchema = z
+  .object({
+    name: z.string().catch(''),
+    area_slug: z.string().nullish().catch(null),
+    lat: z.number().nullish().catch(null),
+    lng: z.number().nullish().catch(null),
+    address: z.string().nullish().catch(null),
+    categories: z.array(z.string()).catch([]),
+    food_type: foodTypeSchema.catch('unknown'),
+    serves_alcohol: z.boolean().nullish().catch(null),
+    has_shisha: z.boolean().nullish().catch(null),
+    service_modes: z.array(z.string()).catch([]),
+    hours: nullableWeeklyHoursSchema.catch(null),
+    phone: z.string().nullish().catch(null),
+    notes: z.string().nullish().catch(null),
+    /** Optional credit fields — a submitter may stay fully anonymous. */
+    submitter_name: z.string().nullish().catch(null),
+    submitter_contact: z.string().nullish().catch(null),
+    photo_url: z.string().nullish().catch(null),
+    source_hint: z.string().nullish().catch(null),
+    corrected_slug: z.string().nullish().catch(null),
+  })
+  .passthrough();
+
+export type SubmissionPayload = z.infer<typeof submissionPayloadSchema>;
+
+export const submissionRowSchema = z.object({
+  id: z.string().uuid(),
+  payload: submissionPayloadSchema,
+  kind: z.enum(['new_place', 'correction']).catch('new_place'),
+  place_id: z.string().uuid().nullable(),
+  status: placeStatusSchema,
+  admin_note: z.string().nullable(),
+  created_at: timestamp,
+});
+
+export type SubmissionRow = z.infer<typeof submissionRowSchema>;
+
+export const reportRowSchema = z.object({
+  id: z.string().uuid(),
+  place_id: z.string().uuid(),
+  reason: reportReasonSchema,
+  detail: z.string().nullable(),
+  resolved_at: nullableTimestamp,
+  created_at: timestamp,
+});
+
+export type ReportRow = z.infer<typeof reportRowSchema>;
+
 /** Keep only tags from the fixed vocabulary, deduped and in canonical order. */
 export function normalizeCategories(input: readonly string[]): Category[] {
   const wanted = new Set(

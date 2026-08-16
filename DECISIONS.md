@@ -196,3 +196,94 @@ Newest at the bottom. Format: `date — decision — why`.
   dynamically imported so it is never bundled otherwise, and it exists because this
   sandbox's network policy blocks `*.supabase.co` — without it, none of Phase 3 could
   have been run, screenshotted or verified.
+
+## Phase 4
+
+- **2026-08-16 — Migrations reach Supabase over HTTPS via the Management API, not port 5432.**
+  Supabase's Postgres is raw TCP on 5432 and the direct host now resolves IPv6-only;
+  neither is reachable from the sandboxes this project is built in (verified: pooler
+  and direct both time out). `scripts/lib/sqlRunner.ts` puts two transports behind one
+  interface — direct `pg` for local work, and
+  `POST /v1/projects/{ref}/database/query` with a personal access token for everything
+  else — and `db:push` prefers the HTTPS one whenever `SUPABASE_ACCESS_TOKEN` is set.
+  A migration and its `schema_migrations` row are sent as one multi-statement string,
+  which Postgres runs as a single implicit transaction, so atomicity survives the change.
+  `--fresh` against a remote project now demands `--force` as well, because dropping
+  the public schema is a very different act on a laptop than on the real thing.
+
+- **2026-08-16 — Seed slugs are allocated, not derived.** `slugify(name, area)` collides
+  in the real dataset — Mumbai has a Starbucks on every other corner of Andheri and OSM
+  has a node for each — and the first collision killed the whole seed run against the
+  live project. `scripts/lib/slugAllocator.ts` gives an existing row back its stored slug
+  (so re-runs stay idempotent) and suffixes only genuinely new places, taking the lowest
+  free suffix so a repeat run allocates identically. This never showed up in Phase 2
+  because the 20-row fixture had no duplicate names.
+
+- **2026-08-16 — Admin identity is `session.email === ADMIN_EMAIL`, checked on every
+  request, and never a database role.** A Supabase project will happily mint an
+  `authenticated` session for any address that asks, so "logged in" proves nothing here.
+  There is deliberately no admin role in Postgres: RLS hides pending places, submissions
+  and reports from `anon` *and* `authenticated`, and admin reads go through the
+  service-role client behind `requireAdmin()`. Proven live — a stranger holding a valid
+  session for this project is redirected out and sees no data, and a forged cookie
+  carrying the owner's email is refused because `getUser()` revalidates with Supabase
+  rather than trusting the cookie.
+
+- **2026-08-16 — `requireAdmin()` is called inside every admin read and every Server
+  Action, not once in a layout.** A Server Action is a public HTTP endpoint; a layout
+  does not run before one. Repeating the check is cheap and means a future route that
+  forgets the guard cannot leak the dataset.
+
+- **2026-08-16 — The login form answers identically for any address.** Saying "that is
+  not the admin email" to a wrong address confirms which one is right, and the form is
+  on the public internet. A non-admin address never reaches Supabase at all, so a
+  stranger cannot even create an account against this project through it.
+
+- **2026-08-16 — A correction is shown as a field-level diff, and a blank field means
+  "no opinion".** `lib/submissionDiff.ts` reduces a correction to what actually changed,
+  because moderating by re-reading two full records at 2 AM is how wrong edits get
+  approved. A field the contributor left empty is never treated as "delete this" — same
+  `coalesce` semantics as the seed upserts. GPS jitter under ~11 m is not reported as a
+  move, since a phone reading is never bit-identical.
+
+- **2026-08-16 — The verify toggle clears `verified_at` when switched off.** A stale
+  "verified 3 months ago" stamp on a row nobody has confirmed since is worse than no
+  stamp, because the badge is the one promise this product makes.
+
+- **2026-08-16 — Bulk approve is capped at 200 ids and takes an explicit selection.**
+  Clearing a seed batch is the reason the places tab exists, but "approve everything
+  matching the current filter" is exactly how unverified hours reach the whole city.
+  The button names the count it is about to approve.
+
+- **2026-08-16 — `ip_hash` is never selected into the admin.** It exists to rate-limit,
+  not to identify, and the moderation UI has no use for it. Leaving it out of the query
+  means it cannot reach a client component by accident.
+
+- **2026-08-16 — Timestamp display lives in `lib/istTime.ts`, apart from `format.ts`.**
+  `format.ts` is deliberately timezone-free and `openNow.ts` is the open/closed engine.
+  Rendering a stored timestamp is a third concern, and it must be pinned to
+  `Asia/Kolkata` — the runtime zone on Vercel is UTC, which would date every
+  after-midnight submission a day early. Tested under three timezones.
+
+- **2026-08-16 — Photos are links, with a converter offered next to the field, not
+  uploads.** docs/05 defers the photo pipeline out of V1 and hosting user images brings
+  storage, moderation and takedown obligations with it. A bare "paste an image URL" box
+  is useless to someone standing outside a place with a photo in their camera roll, so
+  the field carries a one-tap link to a free image host: upload there, paste the link
+  back. Nothing is uploaded to us, there is no third-party script on the page, and the
+  URL is restricted to http(s) so a `javascript:` link can never reach an href in the
+  admin. **Upgrade path:** a Supabase Storage bucket (1 GB free) would let people upload
+  in-page with no third party — worth doing when photos matter enough to moderate.
+
+- **2026-08-16 — Contributor name and contact are optional fields, and the form says
+  plainly that filling more in helps.** Anonymous submission stays the promise, so
+  neither can ever be required; the contact is for checking a detail and is never shown
+  publicly. Telling people that a complete submission is more accurate and likelier to
+  be featured beats marking fields required that are not.
+
+- **2026-08-16 — `rls:test:live` probes the deployed project through PostgREST with the
+  real anon key.** `rls:test` proves the policies by dropping to the `anon` role over a
+  direct connection, which needs port 5432. The live variant is complementary and, for a
+  deployed project, stricter: it exercises the exact surface a hostile visitor has, where
+  an exposed view or a forgotten grant would show up and a SQL-level test would not.
+  15/15 pass against the real project.

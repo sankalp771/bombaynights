@@ -34,6 +34,9 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
   >(Object.fromEntries(DAY_KEYS.map((day) => [day, { open: '19:00', close: '02:00', on: true }])));
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [submitterName, setSubmitterName] = useState('');
+  const [submitterContact, setSubmitterContact] = useState('');
   const [honeypot, setHoneypot] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -75,6 +78,9 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
           hours: buildHours(),
           phone,
           notes,
+          photo_url: photoUrl,
+          submitter_name: submitterName,
+          submitter_contact: submitterContact,
           correction_for: correctionFor,
           website: honeypot,
         }),
@@ -270,6 +276,20 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
           Anything else? (all optional)
         </summary>
 
+        {/*
+         * Every field below is genuinely optional — a submission with just a
+         * name, area and timings is welcome. But the more of this that is
+         * filled in, the less we have to verify by hand, and the sooner it
+         * goes live. Saying so plainly beats marking things required that
+         * are not.
+         */}
+        <p className="border-sodium/30 bg-sodium/5 text-cream-muted mt-3 rounded-lg border p-3 text-sm">
+          None of this is required. But the more you fill in, the more accurate the listing — and
+          the better its chances of getting{' '}
+          <span className="text-sodium font-semibold">featured</span> instead of sitting in the
+          queue.
+        </p>
+
         <div className="mt-4 flex flex-col gap-5">
           <Field label="Veg or non-veg">
             <Segmented
@@ -356,6 +376,31 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
               className={inputClass}
             />
           </Field>
+
+          <PhotoLinkField value={photoUrl} onChange={setPhotoUrl} />
+
+          <Field label="Your name" hint="Only if you want the credit. Blank is completely fine.">
+            <input
+              value={submitterName}
+              onChange={(event) => setSubmitterName(event.target.value)}
+              maxLength={80}
+              autoComplete="off"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field
+            label="How to reach you"
+            hint="Instagram handle, phone, email — only used if we need to check a detail. Never shown on the site."
+          >
+            <input
+              value={submitterContact}
+              onChange={(event) => setSubmitterContact(event.target.value)}
+              maxLength={120}
+              autoComplete="off"
+              className={inputClass}
+            />
+          </Field>
         </div>
       </details>
 
@@ -387,6 +432,61 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
         No login, no email, nothing tracked. Goes live after we check it.
       </p>
     </form>
+  );
+}
+
+/**
+ * Photo, as a link.
+ *
+ * We do not host uploads in V1 (docs/05 defers the photo pipeline), and a bare
+ * "paste an image URL" field is useless to someone standing outside a place
+ * with a photo in their camera roll and no link. So the field comes with a
+ * one-tap way to turn that photo into a link: a free image host, opened in a
+ * new tab, paste the result back. Nothing is uploaded to us, nothing costs
+ * anything, and there is no third-party script on the page — just a link.
+ */
+function PhotoLinkField({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const looksWrong = value.trim().length > 0 && !/^https?:\/\/\S+$/i.test(value.trim());
+
+  return (
+    <Field
+      label="Photo"
+      hint="A link to a photo — the signboard, the menu, the spread. Helps us verify it fast."
+      error={looksWrong ? 'That needs to be a full link starting with http.' : undefined}
+    >
+      <div className="border-night-edge bg-night/60 mb-2 rounded-lg border p-3">
+        <p className="text-cream-muted text-xs">
+          Photo on your phone and no link? Upload it free — no account needed — then paste the link
+          it gives you.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ['postimages.org', 'https://postimages.org/'],
+            ['imgbb.com', 'https://imgbb.com/'],
+          ].map(([label, href]) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="border-night-edge text-cream min-h-9 rounded-full border px-3 py-1.5 text-xs"
+            >
+              Make a link ↗ {label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        maxLength={500}
+        inputMode="url"
+        autoComplete="off"
+        placeholder="https://…"
+        className={inputClass}
+      />
+    </Field>
   );
 }
 
