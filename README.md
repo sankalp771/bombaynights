@@ -107,6 +107,47 @@ joints, car-dining spots and new lounges are simply not in it.
 is re-run inside every admin read and every Server Action, not once in a layout
 (a Server Action is a public endpoint that no layout runs before).
 
+### Supabase setup — do this once, or login does not work
+
+`signInWithOtp` sends exactly one email, and **the project's email template
+decides whether it carries a 6-digit code or a clickable link**. Supabase's
+stock template sends a link; this login form asks for a code. Left alone, the
+form waits for something that never arrives — which is precisely how this failed
+in production.
+
+**Editing that template requires custom SMTP.** On the default setup Supabase
+shows "Set up custom SMTP to edit templates" and the body is read-only, so there
+is no way to surface the code without this step. Custom SMTP is free:
+
+1. **Get free SMTP credentials.** [Resend](https://resend.com) (3,000/month) or
+   [Brevo](https://brevo.com) (300/day) both work, as does a Gmail account with
+   an [app password](https://myaccount.google.com/apppasswords). One admin
+   receiving login codes will never approach any of these limits.
+2. **Supabase → Authentication → Emails → SMTP Settings** → enable custom SMTP,
+   fill in host, port, user, password and a sender address.
+3. **Authentication → Emails → Magic link or OTP** — the body is now editable.
+   Set it to include `{{ .Token }}`:
+
+   ```html
+   <h2>Your BombayNights sign-in code</h2>
+   <p style="font-size:28px;letter-spacing:6px"><strong>{{ .Token }}</strong></p>
+   <p>It expires in an hour. If you did not ask for it, ignore this email.</p>
+   ```
+
+4. **Authentication → URL Configuration → Redirect URLs** — add
+   `https://<your-domain>/auth/callback`.
+
+Step 4 is only for the link fallback: `/auth/callback` exchanges a link's code
+for a session so a stray link lands somewhere useful instead of dumping you on
+the homepage with `?code=` in the URL. It works only in the browser that
+requested it, because PKCE keeps the verifier in a cookie there. **The typed
+code is the reliable path** — it is why the form leads with it, and why steps
+1–3 are not optional.
+
+Custom SMTP has a second benefit: Supabase's built-in email service is capped at
+**2 emails per hour** on the free tier, which is easy to hit while testing a
+login flow. Your own SMTP replaces that cap with the provider's.
+
 - **Queue** — anonymous submissions and corrections. Corrections show a diff;
   use judgment, the reporter can be wrong. Approving a new place writes it to
   `places` as `approved` / `source='community'`.

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/supabase';
 import { createSessionClient, isAdminEmail, requireAdmin } from '@/lib/adminAuth';
+import { getSiteUrl } from '@/lib/siteUrl';
 import { slugify } from '@/lib/format';
 import { nullableWeeklyHoursSchema } from '@/lib/hours';
 import {
@@ -86,9 +87,21 @@ export async function sendLoginCode(
   const supabase = await createSessionClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    // There is one admin and the account already exists after the first login.
-    // Leaving this true would let a typo silently create a second user.
-    options: { shouldCreateUser: true },
+    options: {
+      // There is one admin and the account already exists after the first
+      // login. This is only safe because the `isAdminEmail` gate above already
+      // refused every other address — a typo can never reach this call.
+      shouldCreateUser: true,
+      /*
+       * Only used when the project's email template sends a link rather than a
+       * `{{ .Token }}` code. Without it Supabase falls back to the Site URL and
+       * drops the owner on the landing page with an unusable `?code=` — which
+       * is exactly what happened in production. This URL must also be listed
+       * under Authentication → URL Configuration → Redirect URLs, or Supabase
+       * ignores it and falls back to the Site URL again.
+       */
+      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+    },
   });
 
   if (error) return { ok: false, message: `Supabase refused to send it: ${error.message}` };
