@@ -339,3 +339,40 @@ Newest at the bottom. Format: `date — decision — why`.
   pausing is observed*. Real traffic plus the monthly refresh should hold it open. The
   one-line fix is documented in the README's "Things that will bite you" so the next
   person does not have to rediscover it.
+
+- **2026-08-16 — Magic links are handled as a fallback, but the typed code stays the
+  primary path.** Production could not log in at all: the login form promises a 6-digit
+  code while the Supabase project still had the default Magic Link template
+  (`{{ .ConfirmationURL }}`), so the email carried a link. Following it bounced through
+  Supabase to the Site URL with `?code=` appended, where nothing consumed it — no
+  session, no error, just the landing page. Two changes: the template must include
+  `{{ .Token }}` (documented in the README, a dashboard change no deploy can make), and
+  `/auth/callback` now exchanges a code for a session so a link dead-ends in a readable
+  message instead of silence. The code stays primary because a link opens whatever
+  browser the mail app prefers, and PKCE keeps the verifier in a cookie belonging to the
+  browser that asked — the exact failure mode someone moderating from a phone would hit.
+  The callback re-checks `ADMIN_EMAIL` and signs the session out if it does not match:
+  authenticated is not the same as allowed.
+
+- **2026-08-16 — Custom SMTP is a setup requirement, not an optional extra.** The
+  previous entry said the fix was to put `{{ .Token }}` in the Magic Link template. That
+  is not reachable on a default Supabase project: template bodies are read-only until
+  custom SMTP is configured ("Set up custom SMTP to edit templates"), so a stock project
+  can only ever send the link. The alternative considered was replacing Supabase Auth
+  with hand-rolled OTP — own code table, own hashing and expiry, own signed session
+  cookie, and a rewrite of `requireAdmin()`, the middleware and every Server Action that
+  reads the session. Rejected: it is a large amount of security-critical code guarding
+  service-role data, and it still needs an email provider, so it does not even avoid the
+  dependency that motivated it. A free SMTP provider (Resend/Brevo/Gmail app password)
+  unlocks the template, keeps the entire existing auth model intact, and lifts the
+  free-tier cap of 2 auth emails per hour that makes testing a login flow painful.
+
+- **2026-08-16 — The sign-in form no longer validates the code's length.** The form
+  demanded exactly six digits (`/^\d{6}$/`, plus `maxLength={6}` silently truncating
+  what was typed) while the project was configured to issue eight — so a valid code was
+  refused before it ever reached Supabase, and the input ate the last two digits as they
+  were entered. OTP length is a Supabase project setting, not a constant, so any number
+  hardcoded here is a guess that breaks the moment the setting changes. Removed rather
+  than widened: `verifyOtp` is the only thing that can say whether a code is correct, so
+  counting digits first bought no security and only added a way to be wrong. The action
+  now checks the field is non-empty and lets Supabase judge the rest.

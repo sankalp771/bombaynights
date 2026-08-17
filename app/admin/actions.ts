@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createServiceClient } from '@/lib/supabase';
 import { createSessionClient, isAdminEmail, requireAdmin } from '@/lib/adminAuth';
+import { getSiteUrl } from '@/lib/siteUrl';
 import { slugify } from '@/lib/format';
 import { nullableWeeklyHoursSchema } from '@/lib/hours';
 import {
@@ -75,7 +76,7 @@ export async function sendLoginCode(
 
   const sent: ActionResult = {
     ok: true,
-    message: 'If that address is the admin, a 6-digit code is on its way. It expires in an hour.',
+    message: 'If that address is the admin, a sign-in code is on its way. It expires in an hour.',
   };
 
   if (!z.string().email().safeParse(email).success) {
@@ -86,9 +87,21 @@ export async function sendLoginCode(
   const supabase = await createSessionClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    // There is one admin and the account already exists after the first login.
-    // Leaving this true would let a typo silently create a second user.
-    options: { shouldCreateUser: true },
+    options: {
+      // There is one admin and the account already exists after the first
+      // login. This is only safe because the `isAdminEmail` gate above already
+      // refused every other address — a typo can never reach this call.
+      shouldCreateUser: true,
+      /*
+       * Only used when the project's email template sends a link rather than a
+       * `{{ .Token }}` code. Without it Supabase falls back to the Site URL and
+       * drops the owner on the landing page with an unusable `?code=` — which
+       * is exactly what happened in production. This URL must also be listed
+       * under Authentication → URL Configuration → Redirect URLs, or Supabase
+       * ignores it and falls back to the Site URL again.
+       */
+      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+    },
   });
 
   if (error) return { ok: false, message: `Supabase refused to send it: ${error.message}` };
@@ -105,7 +118,13 @@ export async function verifyLoginCode(
   const token = String(formData.get('token') ?? '').trim();
 
   if (!isAdminEmail(email)) return { ok: false, message: 'That code did not work.' };
-  if (!/^\d{6}$/.test(token)) return { ok: false, message: 'The code is six digits.' };
+  /*
+   * No length check. Supabase's OTP length is a project setting, and insisting
+   * on six here refused valid 8-digit codes before they were ever sent for
+   * checking. `verifyOtp` is the only thing that can say whether a code is
+   * right; counting digits first adds nothing but a way to be wrong.
+   */
+  if (!token) return { ok: false, message: 'Enter the code from your email.' };
 
   const supabase = await createSessionClient();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
