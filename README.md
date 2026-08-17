@@ -110,7 +110,7 @@ is re-run inside every admin read and every Server Action, not once in a layout
 ### Supabase setup — do this once, or login does not work
 
 `signInWithOtp` sends exactly one email, and **the project's email template
-decides whether it carries a 6-digit code or a clickable link**. Supabase's
+decides whether it carries a typed code or a clickable link**. Supabase's
 stock template sends a link; this login form asks for a code. Left alone, the
 form waits for something that never arrives — which is precisely how this failed
 in production.

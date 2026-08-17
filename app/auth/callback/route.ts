@@ -4,9 +4,8 @@ import { createSessionClient, isAdminEmail } from '@/lib/adminAuth';
 /**
  * Exchanges a Supabase magic-link code for a session.
  *
- * `signInWithOtp` sends exactly one email, and whether it carries a 6-digit
- * token or a clickable link is decided entirely by the project's email
- * template. The login form drives the token path (`verifyOtp`), but a project
+ * `signInWithOtp` sends exactly one email, and whether it carries a typed code
+ * or a clickable link is decided entirely by the project's email template. The login form drives the token path (`verifyOtp`), but a project
  * left on Supabase's default template sends `{{ .ConfirmationURL }}` — a link.
  * Following it lands the owner back on the site with `?code=…` in the URL and,
  * without this route, nothing to consume it: no session, no admin, no error.

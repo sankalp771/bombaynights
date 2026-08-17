@@ -65,18 +65,20 @@ export function LoginForm() {
         >
           <input type="hidden" name="email" value={email} />
           <label className="text-cream text-sm font-medium" htmlFor="admin-code">
-            6-digit code
+            Sign-in code
           </label>
+          {/*
+            No pattern or maxLength: Supabase's OTP length is a project setting,
+            and hardcoding six silently truncated 8-digit codes as they were
+            typed. Let the field take whatever arrived and let Supabase judge it.
+          */}
           <input
             id="admin-code"
             name="token"
             inputMode="numeric"
             autoComplete="one-time-code"
-            pattern="\d{6}"
-            maxLength={6}
             required
             className="border-night-edge bg-night text-cream focus:border-sodium min-h-12 rounded-xl border px-3 text-center font-mono text-2xl tracking-[0.4em] outline-none"
-            placeholder="······"
           />
           <button
             type="submit"
