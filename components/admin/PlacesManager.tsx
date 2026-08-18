@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { bulkApprovePlaces } from '@/app/admin/actions';
+import { bulkSetPlaceStatus } from '@/app/admin/actions';
 import { PlaceRow } from './PlaceRow';
 import { PLACE_STATUSES, type Area, type Place } from '@/lib/types';
 
@@ -49,6 +49,17 @@ export function PlacesManager({
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+  }
+
+  function bulk(status: 'approved' | 'archived') {
+    startTransition(async () => {
+      const result = await bulkSetPlaceStatus([...selected], status);
+      setMessage(result.message ?? null);
+      if (result.ok) {
+        setSelected(new Set());
+        router.refresh();
+      }
     });
   }
 
@@ -137,19 +148,20 @@ export function PlacesManager({
           <button
             type="button"
             disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await bulkApprovePlaces([...selected]);
-                setMessage(result.message ?? null);
-                if (result.ok) {
-                  setSelected(new Set());
-                  router.refresh();
-                }
-              })
-            }
+            onClick={() => bulk('approved')}
             className="bg-open text-night min-h-10 rounded-lg px-3 text-sm font-semibold disabled:opacity-50"
           >
-            {pending ? 'Approving…' : `Approve ${selected.size}`}
+            {pending ? 'Working…' : `Approve ${selected.size}`}
+          </button>
+          {/* The delete: out of the public site forever, but the row (and its
+              osm_id) stays, so the monthly refresh cannot resurrect it. */}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => bulk('archived')}
+            className="border-night-edge text-cream-muted min-h-10 rounded-lg border px-3 text-sm disabled:opacity-50"
+          >
+            {pending ? 'Working…' : `Archive ${selected.size}`}
           </button>
           <button
             type="button"

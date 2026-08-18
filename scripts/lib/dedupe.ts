@@ -57,8 +57,11 @@ export function normalizeName(name: string): string {
 
 export interface Locatable {
   name: string;
-  lat: number;
-  lng: number;
+  // Nullable since migration 0003: community places may carry no pin. A
+  // pinless row can never distance-match, so it is skipped — the owner
+  // archives any resulting duplicate in one tap, which beats a wrong merge.
+  lat: number | null;
+  lng: number | null;
 }
 
 /**
@@ -71,13 +74,18 @@ export function findDuplicate<T extends Locatable>(
   existing: readonly T[],
   radiusMetres: number = DEDUPE_RADIUS_METRES,
 ): T | undefined {
+  if (candidate.lat == null || candidate.lng == null) return undefined;
   const key = normalizeName(candidate.name);
   let best: T | undefined;
   let bestDistance = Number.POSITIVE_INFINITY;
 
   for (const row of existing) {
+    if (row.lat == null || row.lng == null) continue;
     if (normalizeName(row.name) !== key) continue;
-    const distance = haversineMetres(candidate, row);
+    const distance = haversineMetres(
+      { lat: candidate.lat, lng: candidate.lng },
+      { lat: row.lat, lng: row.lng },
+    );
     if (distance <= radiusMetres && distance < bestDistance) {
       best = row;
       bestDistance = distance;

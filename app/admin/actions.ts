@@ -41,8 +41,8 @@ const placeEditSchema = z.object({
   name: z.string().trim().min(2).max(120),
   address: z.string().trim().max(300).nullish(),
   area_id: z.coerce.number().int().nullish(),
-  lat: z.coerce.number().min(-90).max(90),
-  lng: z.coerce.number().min(-180).max(180),
+  lat: z.coerce.number().min(-90).max(90).nullish(),
+  lng: z.coerce.number().min(-180).max(180).nullish(),
   categories: z.array(z.string()).max(20).default([]),
   food_type: foodTypeSchema.default('unknown'),
   serves_alcohol: z.boolean().nullish(),
@@ -193,13 +193,8 @@ export async function approveSubmission(
     const { error } = await client.from('places').update(patch).eq('id', submission.place_id);
     if (error) return { ok: false, message: `Could not apply it: ${error.message}` };
   } else {
-    if (typeof payload.lat !== 'number' || typeof payload.lng !== 'number') {
-      return {
-        ok: false,
-        message: 'This one has no coordinates — add a lat/lng in the form before approving.',
-      };
-    }
-
+    // No coordinates required: community places ship with an address only and
+    // stay off the map until a seeder ever supplies a pin (DECISIONS 2026-08-18).
     const areaName = areaId ? await areaNameById(areaId) : null;
     const slug = await uniqueSlug(slugify(payload.name, areaName));
 
@@ -319,25 +314,32 @@ export async function setPlaceStatus(placeId: string, status: unknown): Promise<
 }
 
 /**
- * Bulk approve, for clearing a seed batch. Capped at 200 ids per call: a
- * runaway "approve everything" is exactly the kind of mistake that publishes
- * unverified hours to the whole city, and 200 is far more than a human reviews
- * in one sitting.
+ * Bulk status change, for triaging a seed batch: approve the live ones,
+ * archive the dead ones. Capped at 200 ids per call: a runaway "approve
+ * everything" is exactly the kind of mistake that publishes unverified hours
+ * to the whole city, and 200 is far more than a human reviews in one sitting.
+ *
+ * Archive is the delete (docs/03): rows keep their `osm_id`, so the monthly
+ * refresh recognises a dead place and does not re-import it as new.
  */
-export async function bulkApprovePlaces(placeIds: string[]): Promise<ActionResult> {
+export async function bulkSetPlaceStatus(placeIds: string[], status: unknown): Promise<ActionResult> {
   await requireAdmin();
   const ids = z.array(uuid).min(1).max(200).parse(placeIds);
+  const next = placeStatusSchema.parse(status);
 
   const { error } = await createServiceClient()
     .from('places')
-    .update({ status: 'approved', updated_at: new Date().toISOString() })
+    .update({ status: next, updated_at: new Date().toISOString() })
     .in('id', ids);
 
-  if (error) return { ok: false, message: `Could not approve them: ${error.message}` };
+  if (error) return { ok: false, message: `Could not update them: ${error.message}` };
 
   revalidateAdmin();
   revalidatePath('/places');
-  return { ok: true, message: `Approved ${ids.length} place${ids.length === 1 ? '' : 's'}.` };
+  return {
+    ok: true,
+    message: `Moved ${ids.length} place${ids.length === 1 ? '' : 's'} to ${next}.`,
+  };
 }
 
 /* ---------------------------------------------------------------- reports -- */

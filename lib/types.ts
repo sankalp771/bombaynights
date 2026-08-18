@@ -160,8 +160,10 @@ export const placeSchema = z.object({
   name: z.string(),
   area_id: z.number().int().nullable(),
   address: z.string().nullable(),
-  lat: z.number(),
-  lng: z.number(),
+  // Nullable: community submissions carry only an address. A place without a
+  // pin stays off the map and sorts last in "near me"; everything else works.
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
   categories: z.array(z.string()),
   food_type: foodTypeSchema,
   serves_alcohol: z.boolean().nullable(),

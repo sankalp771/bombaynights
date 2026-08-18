@@ -66,7 +66,10 @@ export function rankPlaces(places: readonly PublicPlace[], options: RankOptions)
     ranked.push({
       place,
       state,
-      distanceMetres: origin ? haversineMetres(origin, { lat: place.lat, lng: place.lng }) : null,
+      distanceMetres:
+        origin && place.lat != null && place.lng != null
+          ? haversineMetres(origin, { lat: place.lat, lng: place.lng })
+          : null,
     });
   }
 

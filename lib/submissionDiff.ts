@@ -71,7 +71,13 @@ export function diffSubmission(place: Place, payload: SubmissionPayload): FieldD
 
   // Coordinates only count as a change if the pin actually moved — a phone GPS
   // reading is never bit-identical, and 11 m of noise is not a correction.
-  if (typeof payload.lat === 'number' && typeof payload.lng === 'number') {
+  // (A place may have no pin at all: community places carry only an address.)
+  if (
+    typeof payload.lat === 'number' &&
+    typeof payload.lng === 'number' &&
+    place.lat != null &&
+    place.lng != null
+  ) {
     const moved =
       Math.abs(payload.lat - place.lat) > 0.0001 || Math.abs(payload.lng - place.lng) > 0.0001;
     if (moved) {

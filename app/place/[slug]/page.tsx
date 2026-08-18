@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getApprovedPlaces, getAreas, getPlaceBySlug } from '@/lib/data';
 import { formatTime } from '@/lib/format';
+import { googleMapsSearchUrl } from '@/lib/maps';
 import { LivePlaceStatus } from '@/components/LivePlaceStatus';
 import { ReportButton } from '@/components/ReportButton';
 import { FoodTypeMark, PriceBand, TagChip, VerifiedBadge } from '@/components/Tags';
@@ -45,7 +46,19 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
   if (!place) notFound();
 
   const area = areas.find((candidate) => candidate.id === place.area_id);
-  const directions = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
+  // Coordinates when we have them (OSM/manual seeds), the address text when we
+  // don't (community places have no pin) — Google resolves either.
+  const destination =
+    place.lat != null && place.lng != null
+      ? `${place.lat},${place.lng}`
+      : [place.name, place.address ?? area?.name, 'Mumbai'].filter(Boolean).join(', ');
+  const directions = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+  // Link OUT to the place's Google Maps card (official Maps URL scheme — no API,
+  // no key, ToS-fine). A name+area query resolves to the business card, which
+  // carries Google's own live hours/photos as a second opinion for the visitor.
+  const googleCard = googleMapsSearchUrl(
+    [place.name, area?.name, 'Mumbai'].filter(Boolean).join(' '),
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6">
@@ -110,10 +123,29 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             Call {place.phone}
           </a>
         ) : null}
+        <a
+          href={googleCard}
+          target="_blank"
+          rel="noreferrer"
+          className="border-night-edge hover:border-sodium/50 flex min-h-13 items-center justify-center rounded-xl border px-4 py-3 font-semibold sm:col-span-2"
+        >
+          View on Google Maps
+        </a>
       </div>
 
       {place.address ? (
-        <p className="text-cream-muted mt-4 text-sm leading-relaxed">{place.address}</p>
+        <p className="text-cream-muted mt-4 text-sm leading-relaxed">
+          {/* The address itself is the affordance: tap it, Google Maps opens on
+              the place. No naked coordinates anywhere a human can see. */}
+          <a
+            href={googleMapsSearchUrl(`${place.name}, ${place.address}`)}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-night-edge underline-offset-4 hover:decoration-sodium/60"
+          >
+            {place.address}
+          </a>
+        </p>
       ) : null}
 
       <section className="mt-8">

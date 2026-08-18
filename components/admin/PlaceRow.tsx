@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { setHoursVerified, setPlaceStatus, updatePlace } from '@/app/admin/actions';
+import { googleMapsSearchUrl } from '@/lib/maps';
 import { HoursEditor } from './HoursEditor';
 import { summariseHours } from '@/lib/submissionDiff';
 import { formatDateIst } from '@/lib/istTime';
@@ -39,8 +40,6 @@ export function PlaceRow({
     name: place.name,
     address: place.address ?? '',
     area_id: place.area_id ? String(place.area_id) : '',
-    lat: String(place.lat),
-    lng: String(place.lng),
     categories: place.categories,
     food_type: place.food_type,
     serves_alcohol: tri(place.serves_alcohol),
@@ -68,8 +67,6 @@ export function PlaceRow({
         name: draft.name,
         address: draft.address || null,
         area_id: draft.area_id ? Number(draft.area_id) : null,
-        lat: Number(draft.lat),
-        lng: Number(draft.lng),
         categories: draft.categories,
         food_type: draft.food_type,
         serves_alcohol: untri(draft.serves_alcohol),
@@ -119,6 +116,17 @@ export function PlaceRow({
           ) : null}
         </div>
 
+        {/* Triage tool: Google's card is the fastest liveness check we are
+            allowed — one click shows "Permanently closed" without us storing a
+            byte of Google data. Especially for the pending OSM backlog. */}
+        <a
+          href={googleMapsSearchUrl([place.name, areaName ?? 'Mumbai'].join(' '))}
+          target="_blank"
+          rel="noreferrer"
+          className="text-cream-muted text-xs underline underline-offset-4"
+        >
+          Google ↗
+        </a>
         {place.status === 'approved' ? (
           <Link
             href={`/place/${place.slug}`}
@@ -146,25 +154,6 @@ export function PlaceRow({
               className={inputClass}
             />
           </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitude">
-              <input
-                value={draft.lat}
-                inputMode="decimal"
-                onChange={(event) => setDraft({ ...draft, lat: event.target.value })}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Longitude">
-              <input
-                value={draft.lng}
-                inputMode="decimal"
-                onChange={(event) => setDraft({ ...draft, lng: event.target.value })}
-                className={inputClass}
-              />
-            </Field>
-          </div>
 
           <Field label="Area">
             <select

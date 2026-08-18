@@ -71,9 +71,16 @@ export function MapView({
       if (cancelled || !map || !layer) return;
 
       layer.clearLayers();
-      if (entries.length === 0) return;
+      // Community places may have no pin (address only) — they live in the
+      // list views; the map shows only what it can place honestly.
+      const pinned = entries.flatMap((entry) =>
+        entry.place.lat != null && entry.place.lng != null
+          ? [{ entry, lat: entry.place.lat, lng: entry.place.lng }]
+          : [],
+      );
+      if (pinned.length === 0) return;
 
-      for (const entry of entries) {
+      for (const { entry, lat, lng } of pinned) {
         const open = entry.state.kind === 'open' || entry.state.kind === 'always_open';
         const soon = entry.state.kind === 'open' && entry.state.closingSoon;
         const colour = soon ? '#ffa928' : open ? '#5bc98c' : '#9d9689';
@@ -88,7 +95,7 @@ export function MapView({
                 ? 'Hours unverified'
                 : 'Closed';
 
-        L.circleMarker([entry.place.lat, entry.place.lng], {
+        L.circleMarker([lat, lng], {
           radius: 8,
           color: colour,
           weight: 2,
@@ -105,7 +112,7 @@ export function MapView({
       }
 
       map.fitBounds(
-        entries.map((entry) => [entry.place.lat, entry.place.lng] as [number, number]),
+        pinned.map(({ lat, lng }) => [lat, lng] as [number, number]),
         { padding: [30, 30], maxZoom: 15 },
       );
     }

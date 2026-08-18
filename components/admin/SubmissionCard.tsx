@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { approveSubmission, rejectSubmission } from '@/app/admin/actions';
 import { diffSubmission, summariseHours } from '@/lib/submissionDiff';
 import { formatDateTimeIst } from '@/lib/istTime';
+import { googleMapsSearchUrl } from '@/lib/maps';
 import type { Area, Place, SubmissionRow } from '@/lib/types';
 
 /**
@@ -12,6 +13,11 @@ import type { Area, Place, SubmissionRow } from '@/lib/types';
  * A correction leads with a "was → now" diff, because that is the decision:
  * everything else on the record is unchanged and re-reading it wastes the one
  * scarce resource here, which is the owner's attention at 2 AM.
+ *
+ * Verification is the address link: it opens the place's Google Maps card
+ * (live hours, "Permanently closed", photos) and the owner judges from there.
+ * No coordinates appear anywhere — visitors submit an address, and a place
+ * without a pin simply stays off the map until OSM or a seeder supplies one.
  */
 export function SubmissionCard({
   submission,
@@ -35,8 +41,6 @@ export function SubmissionCard({
 
   const area = areas.find((candidate) => candidate.slug === payload.area_slug);
   const needsArea = !isCorrection && !area;
-  const missingCoords =
-    !isCorrection && (typeof payload.lat !== 'number' || typeof payload.lng !== 'number');
 
   function run(action: () => Promise<{ ok: boolean; message?: string }>) {
     startTransition(async () => {
@@ -104,15 +108,27 @@ export function SubmissionCard({
         )
       ) : (
         <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <Detail label="Address" value={payload.address || '—'} />
-          <Detail
-            label="Coordinates"
-            value={
-              typeof payload.lat === 'number' && typeof payload.lng === 'number'
-                ? `${payload.lat.toFixed(5)}, ${payload.lng.toFixed(5)}`
-                : 'none given'
-            }
-          />
+          <div className="sm:col-span-2">
+            <Detail
+              label="Address"
+              value={
+                payload.address ? (
+                  <a
+                    href={googleMapsSearchUrl(
+                      [payload.name, payload.address].filter(Boolean).join(', '),
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    {payload.address}
+                  </a>
+                ) : (
+                  '—'
+                )
+              }
+            />
+          </div>
           <Detail label="Tags" value={(payload.categories ?? []).join(', ') || '—'} />
           <Detail label="Food" value={payload.food_type ?? 'unknown'} />
           <Detail label="Phone" value={payload.phone || '—'} />
@@ -146,18 +162,11 @@ export function SubmissionCard({
         </label>
       ) : null}
 
-      {missingCoords ? (
-        <p className="border-neon/40 text-neon mt-3 rounded-lg border px-3 py-2 text-sm">
-          No coordinates — the map needs a pin, so this cannot be approved as-is. Reject it with a
-          note, or add the place by hand in Places.
-        </p>
-      ) : null}
-
       {!decided ? (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={pending || missingCoords || (needsArea && !areaId)}
+            disabled={pending || (needsArea && !areaId)}
             onClick={() =>
               run(() => approveSubmission(submission.id, areaId ? { area_id: Number(areaId) } : {}))
             }
@@ -203,7 +212,7 @@ export function SubmissionCard({
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <dt className="text-cream-muted text-xs font-semibold tracking-wide uppercase">{label}</dt>

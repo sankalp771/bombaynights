@@ -376,3 +376,37 @@ Newest at the bottom. Format: `date — decision — why`.
   than widened: `verifyOtp` is the only thing that can say whether a code is correct, so
   counting digits first bought no security and only added a way to be wrong. The action
   now checks the field is non-empty and lets Supabase judge the rest.
+
+- **2026-08-18 — Humans never type coordinates; addresses are the interface.** The
+  admin editor exposed raw Latitude/Longitude text inputs and submission cards showed
+  bare decimal pairs, while the public submit form (correctly) collects only an address
+  string — which meant a community submission without coordinates hit a dead end and
+  could not be approved at all. Coordinates stay in the schema (the map pin and the
+  distance sort need them) but are now produced by machines: `lib/geocode.ts` resolves
+  an address through Nominatim, OSM's own keyless geocoder (Zod-validated like every
+  external input, and rejected unless it lands inside a greater-Mumbai bounding box —
+  a silently wrong pin in Delhi is worse than no pin). The queue gets a "Locate from
+  address" button whose result rides along with the approval, the places editor gets
+  "Set pin from address" with the numeric fields demoted to a fallback, and every
+  address shown anywhere is a link out to Google Maps (official Maps URL scheme —
+  a link, not an API, so it stays ₹0 and ToS-clean). Google/Zomato/TripAdvisor remain
+  link-out only, never scraped: docs/03's hard rule, reaffirmed 2026-08-17.
+
+- **2026-08-18 — No geocoding, no coordinate UI; the Google card link is the
+  verification.** The Nominatim "locate from address" flow added earlier today is
+  removed the same day, at the owner's call: on a real submission it fell back to a
+  locality-level result that presented itself as a pin ("Karuna Nursing Home" for a
+  cafe) — plausible, confident, and wrong, which is the worst kind of data in this
+  app. With it goes every coordinate surface: the lat/lng inputs in the places
+  editor, the coordinate row on submission cards, and the coordinate requirement for
+  approving a community submission. `places.lat/lng` become nullable (migration
+  0003): OSM and manual seeds still carry real coordinates, so the map and "near me"
+  keep working from machine-sourced pins; a community place has no pin, stays off
+  the map, sorts last in "near me", and its directions link falls back to the
+  address text — Google resolves it. Verification is now one gesture everywhere:
+  every name and address links out to the place's Google Maps card (official Maps
+  URL scheme), where liveness, hours and location are all visible at once — it is
+  how the owner caught a "permanently closed" McDonald's in the OSM leads. The
+  standing principle, stated by the owner: when an automated helper produces
+  plausible-but-wrong results, remove it rather than hedge it; link out and let a
+  human look.
