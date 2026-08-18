@@ -156,16 +156,24 @@ export function SubmitForm({ areas }: { areas: Area[] }) {
         </select>
       </Field>
 
+      {/* Free text on purpose (DECISIONS 2026-08-18): no autocomplete API —
+          the best address already exists on the place's Google Maps card, and
+          copying it beats anything a geocoder would guess. */}
+      <p className="bg-night-raised border-night-edge text-cream-muted rounded-xl border px-3 py-2 text-sm">
+        💡 Best way: find the place on <span className="text-cream">Google Maps</span>, tap its
+        name, and copy the full address from its card — then paste it below.
+      </p>
+
       <Field
         label="Where exactly?"
         error={errors.address}
-        hint="Street, landmark — enough to find it"
+        hint="Or just street + landmark — enough to find it"
       >
         <input
           value={address}
           onChange={(event) => setAddress(event.target.value)}
           maxLength={300}
-          placeholder="e.g. Tardeo Road, opposite AC Market"
+          placeholder="e.g. Agora Building, RM Bhattad Rd, Borivali West, Mumbai 400092"
           className={inputClass}
         />
       </Field>

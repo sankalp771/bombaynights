@@ -410,3 +410,37 @@ Newest at the bottom. Format: `date — decision — why`.
   standing principle, stated by the owner: when an automated helper produces
   plausible-but-wrong results, remove it rather than hedge it; link out and let a
   human look.
+
+- **2026-08-18 — Inlet 5: chain outlets from the brand's own site; OSM cron off;
+  hard delete unlocked.** Three linked calls by the owner. (1) A new seeder,
+  `npm run scrape:chains`, reads McDonald's India's own outlet pages
+  (mcdelivery.co.in — robots.txt allows all; sitemap → 56 corridor outlet pages;
+  one fetch each, 5 s apart) and extracts facts the pages publish in schema.org
+  microdata: outlet name, opens/closes, coordinates. A brand's own ordering site is
+  authoritative for its own outlets in a way OSM never was — the company keeps it
+  current because it takes orders through it. Facts only, aggregators still
+  forbidden; outlets closing at or before midnight are skipped; everything lands
+  `pending` + `hours_verified=false`; owner-verified rows are never overwritten and
+  archived/rejected rows are never resurrected. Coordinates are taken because the
+  pages offer them and the map needs them — machine-sourced, never shown to or
+  asked of a human (the pages publish no street address at all). (2) The monthly
+  OSM refresh cron is disabled — OSM was the wrong-data source; manual
+  `workflow_dispatch` remains. (3) With no automatic re-import, hard delete is now
+  offered (per-row and bulk, two-tap confirm): the no-hard-delete rule existed to
+  stop the refresh resurrecting dead rows. Remaining caveat, stated in the UI: a
+  manual `seed:osm` re-run can still re-insert a deleted OSM place — Archive is the
+  delete that survives re-seeding.
+
+- **2026-08-18 — One timing, and it means "you can go there" (owner's call after
+  discussion).** A brand delivery site's window is the *ordering* window; dine-in
+  often shuts earlier, so publishing it as the place's hours would eventually walk
+  someone to a closed door — the one unforgivable failure here. Options weighed:
+  visit-hours-only; a secondary "delivers till…" line (nullable delivery_hours);
+  full dual timings with two open-states. The owner chose visit-hours-only:
+  delivery discovery is Swiggy/Zomato's solved problem, and BombayNights' promise
+  is the physical late-night city. Consequences: the chain scraper no longer
+  writes its window into `hours` (outlets ship hours-unknown, honestly
+  "unverified" on the site); the window moves to a new admin-only `scrape_hint`
+  column (migration 0004) shown beside the row while the owner verifies the real
+  close via the Google card. Public queries never select the hint. Revisit
+  delivery display only if user demand shows up.

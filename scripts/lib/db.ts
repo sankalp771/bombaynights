@@ -77,6 +77,7 @@ const PLACE_COLUMNS = [
   'source',
   'osm_id',
   'verified_at',
+  'scrape_hint',
 ] as const;
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { setHoursVerified, setPlaceStatus, updatePlace } from '@/app/admin/actions';
+import { deletePlaces, setHoursVerified, setPlaceStatus, updatePlace } from '@/app/admin/actions';
 import { googleMapsSearchUrl } from '@/lib/maps';
 import { HoursEditor } from './HoursEditor';
 import { summariseHours } from '@/lib/submissionDiff';
@@ -35,6 +35,7 @@ export function PlaceRow({
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const [draft, setDraft] = useState({
     name: place.name,
@@ -113,6 +114,11 @@ export function PlaceRow({
           </p>
           {!editing ? (
             <p className="text-cream-muted mt-2 text-sm">{summariseHours(place.hours)}</p>
+          ) : null}
+          {/* Admin-only breadcrumb from the scraper (e.g. a brand site's
+              delivery window) — a lead for verification, never public data. */}
+          {place.scrape_hint && !place.hours_verified ? (
+            <p className="text-sodium/80 mt-1 text-xs">🛵 {place.scrape_hint}</p>
           ) : null}
         </div>
 
@@ -381,6 +387,27 @@ export function PlaceRow({
               Archive
             </button>
           ) : null}
+
+          {/* Two taps on purpose: this one has no undo. Archive survives a
+              re-seed; delete does not — an OSM re-run can re-insert the row. */}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (!confirmingDelete) {
+                setConfirmingDelete(true);
+                return;
+              }
+              setConfirmingDelete(false);
+              act(() => deletePlaces([place.id]));
+            }}
+            onBlur={() => setConfirmingDelete(false)}
+            className={`min-h-10 rounded-lg border px-3 text-sm font-semibold disabled:opacity-50 ${
+              confirmingDelete ? 'border-neon bg-neon/15 text-neon' : 'border-neon/40 text-neon'
+            }`}
+          >
+            {confirmingDelete ? 'Really delete forever?' : 'Delete'}
+          </button>
         </div>
       )}
 

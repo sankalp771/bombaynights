@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { bulkSetPlaceStatus } from '@/app/admin/actions';
+import { bulkSetPlaceStatus, deletePlaces } from '@/app/admin/actions';
 import { PlaceRow } from './PlaceRow';
 import { PLACE_STATUSES, type Area, type Place } from '@/lib/types';
 
@@ -33,6 +33,7 @@ export function PlacesManager({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState(search);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const areaName = new Map(areas.map((area) => [area.id, area.name]));
 
@@ -55,6 +56,17 @@ export function PlacesManager({
   function bulk(status: 'approved' | 'archived') {
     startTransition(async () => {
       const result = await bulkSetPlaceStatus([...selected], status);
+      setMessage(result.message ?? null);
+      if (result.ok) {
+        setSelected(new Set());
+        router.refresh();
+      }
+    });
+  }
+
+  function bulkDelete() {
+    startTransition(async () => {
+      const result = await deletePlaces([...selected]);
       setMessage(result.message ?? null);
       if (result.ok) {
         setSelected(new Set());
@@ -165,7 +177,32 @@ export function PlacesManager({
           </button>
           <button
             type="button"
-            onClick={() => setSelected(new Set())}
+            disabled={pending}
+            onClick={() => {
+              if (!confirmingDelete) {
+                setConfirmingDelete(true);
+                return;
+              }
+              setConfirmingDelete(false);
+              bulkDelete();
+            }}
+            onBlur={() => setConfirmingDelete(false)}
+            className={`min-h-10 rounded-lg border px-3 text-sm font-semibold disabled:opacity-50 ${
+              confirmingDelete ? 'border-neon bg-neon/15 text-neon' : 'border-neon/40 text-neon'
+            }`}
+          >
+            {pending
+              ? 'Working…'
+              : confirmingDelete
+                ? `Really delete ${selected.size} forever?`
+                : `Delete ${selected.size}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelected(new Set());
+              setConfirmingDelete(false);
+            }}
             className="text-cream-muted text-sm underline underline-offset-4"
           >
             Cancel
@@ -196,8 +233,8 @@ export function PlacesManager({
       )}
 
       <p className="text-cream-muted text-xs">
-        Statuses: {PLACE_STATUSES.join(' · ')}. Archived places stay in the database and out of the
-        public site — nothing is ever hard-deleted.
+        Statuses: {PLACE_STATUSES.join(' · ')}. Archive keeps the row (and survives an OSM re-seed);
+        Delete is forever — a later `seed:osm` run can re-insert a deleted OSM place.
       </p>
     </section>
   );

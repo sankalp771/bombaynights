@@ -1,4 +1,4 @@
-name: Monthly OSM refresh
+name: OSM refresh (manual only)
 
 # Re-reads OpenStreetMap for all 13 corridor areas and reconciles it with the
 # database, then files the run's markdown report as a GitHub issue.
@@ -14,11 +14,11 @@ name: Monthly OSM refresh
 # Nothing user-facing depends on this job. If Overpass is down the affected
 # areas are simply skipped and the report says so.
 
+# The monthly cron is OFF (owner's call, DECISIONS 2026-08-18): OSM data was
+# producing dead entries, and an automatic refresh would also resurrect
+# hard-deleted rows. Manual dispatch remains for whenever a refresh is wanted —
+# but know that running it can re-insert OSM places the owner deleted.
 on:
-  schedule:
-    # 22:00 UTC on the 1st = 03:30 IST — the quiet end of BombayNights' own
-    # peak hours, and well clear of Overpass's busy period.
-    - cron: '0 22 1 * *'
   workflow_dispatch:
     inputs:
       dry_run:

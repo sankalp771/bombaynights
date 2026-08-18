@@ -164,6 +164,12 @@ export const placeSchema = z.object({
   // pin stays off the map and sorts last in "near me"; everything else works.
   lat: z.number().nullable(),
   lng: z.number().nullable(),
+  /**
+   * Machine-scraped breadcrumb for the owner (e.g. a brand site's delivery
+   * window). Admin-only: `hours` always means verified-able VISIT hours, and
+   * public queries never select this column.
+   */
+  scrape_hint: z.string().nullable().catch(null),
   categories: z.array(z.string()),
   food_type: foodTypeSchema,
   serves_alcohol: z.boolean().nullable(),

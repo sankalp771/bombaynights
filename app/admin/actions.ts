@@ -342,6 +342,26 @@ export async function bulkSetPlaceStatus(placeIds: string[], status: unknown): P
   };
 }
 
+/**
+ * Hard delete, unlocked once the OSM refresh cron was switched off (DECISIONS
+ * 2026-08-18) — with no automatic re-import, deleted rows stay deleted. The
+ * remaining caveat: a manual `seed:osm` run can still re-insert a deleted OSM
+ * place, so prefer Archive for OSM rows you want to stay dead through re-seeds.
+ * FKs are safe: reports cascade, submissions keep their payload (place_id
+ * nulls out).
+ */
+export async function deletePlaces(placeIds: string[]): Promise<ActionResult> {
+  await requireAdmin();
+  const ids = z.array(uuid).min(1).max(200).parse(placeIds);
+
+  const { error } = await createServiceClient().from('places').delete().in('id', ids);
+  if (error) return { ok: false, message: `Could not delete: ${error.message}` };
+
+  revalidateAdmin();
+  revalidatePath('/places');
+  return { ok: true, message: `Deleted ${ids.length} place${ids.length === 1 ? '' : 's'} forever.` };
+}
+
 /* ---------------------------------------------------------------- reports -- */
 
 export async function resolveReports(reportIds: string[]): Promise<ActionResult> {
