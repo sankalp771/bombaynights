@@ -141,7 +141,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             href={googleMapsSearchUrl(`${place.name}, ${place.address}`)}
             target="_blank"
             rel="noreferrer"
-            className="underline decoration-night-edge underline-offset-4 hover:decoration-sodium/60"
+            className="decoration-night-edge hover:decoration-sodium/60 underline underline-offset-4"
           >
             {place.address}
           </a>

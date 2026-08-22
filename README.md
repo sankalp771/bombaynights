@@ -8,8 +8,9 @@ community submissions, no login to browse.
 
 Built to run at ₹0/month: Next.js 15 on Vercel Hobby, Supabase Free (ap-south-1),
 OpenStreetMap data via Overpass, Leaflet + OSM tiles, GitHub Actions for the
-monthly refresh. There is no paid API anywhere in this repo and there is no
-billing account behind it — keep it that way.
+OSM refresh. There is no paid API anywhere in this repo and there is no billing
+account behind it — keep it that way. Google and the aggregators are link-outs
+only: a Maps URL is not an API and costs nothing.
 
 ---
 
@@ -24,7 +25,7 @@ npm run dev                    # http://localhost:3000
 Checks:
 
 ```bash
-npm test          # 189 unit tests
+npm test          # 194 unit tests
 npm run typecheck # tsc --noEmit, strict
 npm run lint
 npm run test:tz   # the whole suite under UTC, New York and Kolkata
@@ -68,30 +69,63 @@ entire sitemap of dead URLs — silently, since every page still rendered fine.
 
 ## How the data gets in
 
-Four inlets, described fully in `docs/03-DATA-AND-SEEDING.md`.
+Five inlets, described fully in `docs/03-DATA-AND-SEEDING.md`.
 
 ```bash
-npm run seed:areas    # the 13 corridor areas — run once
-npm run seed:osm      # Overpass → parse → classify → upsert (15–30 min)
-npm run seed:manual   # data/manual-seed.csv → upsert
-npm run scrape:leads  # listicle leads → submissions queue
+npm run seed:areas     # the 13 corridor areas — run once
+npm run seed:osm       # Overpass → parse → classify → upsert (15–30 min)
+npm run seed:manual    # data/manual-seed.csv → upsert
+npm run scrape:leads   # listicle leads → submissions queue
+npm run scrape:chains  # chain outlets from the brand's own site (~5 min)
 ```
 
-Every one of them takes `--dry-run` (fetch, report, write nothing). `seed:osm`
-also takes `--fixture=<file>` to work entirely offline and
-`--area=<slug>` to redo a single area.
+Every one takes `--dry-run` (fetch, report, write nothing). `seed:osm` also
+takes `--fixture=<file>` to work entirely offline and `--area=<slug>` to redo a
+single area; `scrape:chains` takes `--limit=<n>` to prove the parse on a few
+pages first.
 
 All seeding is **idempotent** — re-running inserts nothing new. If Overpass
 rate-limits you mid-run (it will; it's a shared free service), just re-run the
 area it dropped.
 
-Rules worth knowing:
+Rules that hold across every inlet:
 
-- OSM rows land as **`pending`**, never straight onto the site. Manual CSV rows
-  land as `approved`, because you wrote them.
+- Machine-sourced rows land as **`pending`**, never straight onto the site.
+  Manual CSV rows land as `approved`, because you wrote them.
+- **Owner-verified rows are never machine-overwritten**, and archived or
+  rejected rows are never resurrected.
 - Manual beats OSM within 150 m for the same name — that's the dedupe rule.
 - A place whose hours we can't parse is **never** shown as open. It reads
   "Hours unverified".
+- **Aggregators are forbidden.** Zomato, Swiggy, Google and TripAdvisor are
+  link-out only, never scraped. `scrape:chains` reads a *brand's own* site
+  (McDonald's India today) because a company keeps its own outlet list current
+  — and takes only facts the page publishes as schema.org microdata: outlet
+  name, timings, coordinates. Never menus, prices or prose.
+
+### A note on timings from delivery sites
+
+A brand's ordering window is **not** its visit window — dine-in usually shuts
+earlier. Publishing one as the other would eventually walk someone to a closed
+shutter, which is the one unforgivable failure here. So `scrape:chains` does not
+write its window into `hours`; outlets ship hours-unknown and read "unverified"
+publicly. The scraped window goes to the admin-only `scrape_hint` column, shown
+beside the row while you confirm the real close. Public queries never select it.
+
+### Coordinates are machine-sourced or absent
+
+Nothing ever asks a human for a latitude. OSM, manual and chain seeds carry real
+coordinates; a community submission carries only an address and has **no pin**
+(`lat`/`lng` are nullable as of migration 0003). Such a place stays off the map,
+sorts last in "near me", and its directions link falls back to the address text —
+Google resolves it fine.
+
+There is deliberately no geocoder. One was built and removed the same day: on a
+real submission it returned a confident locality-level pin for the wrong
+building, and a plausible-but-wrong pin is worse than none. **Verification is one
+gesture instead:** every name and address links out to that place's Google Maps
+card, where liveness, hours and location are all visible at once. That is how a
+"permanently closed" McDonald's got caught in the OSM leads.
 
 ### Adding places yourself
 
@@ -106,6 +140,46 @@ joints, car-dining spots and new lounges are simply not in it.
 `/admin`, email OTP, locked to `ADMIN_EMAIL`. Nobody else can get in — the check
 is re-run inside every admin read and every Server Action, not once in a layout
 (a Server Action is a public endpoint that no layout runs before).
+
+- **Queue** — anonymous submissions and corrections. Corrections show a diff;
+  use judgment, the reporter can be wrong. Approving a new place writes it to
+  `places` as `approved` / `source='community'`. A submission needs no
+  coordinates to be approved.
+- **Places** — inline edit, bulk approve, the verify toggle, and archive or
+  hard delete (per-row and bulk, two-tap confirm).
+- **Reports** — wrong-timing reports from visitors, plus `osm_hours_drifted`
+  rows filed by a refresh run.
+
+### Verify with the Google card
+
+Every place name and address in the admin links out to that place's Google Maps
+card. That one gesture shows liveness, current hours and location together —
+including a "Permanently closed" banner, which is how a dead McDonald's got
+caught in the OSM leads. It is the intended verification step, not a shortcut.
+
+Where a chain outlet was seeded from a brand's delivery site, its ordering
+window sits beside the row as a `scrape_hint`. Treat it as a lead, not an
+answer: confirm the real dine-in close on the Google card before you set `hours`.
+
+### Archive vs delete
+
+**Archive is the delete that survives re-seeding.** A hard-deleted row leaves no
+tombstone, so a later `seed:osm` re-run sees it as new and re-inserts it as
+pending. Archive marks it dead permanently.
+
+Hard delete exists because the OSM cron is off — nothing re-imports on a
+schedule any more. Use it for junk no seeder will re-fetch, and archive for
+anything you want gone for good.
+
+### The ✓ badge is the whole brand
+
+`hours_verified` is flipped **by humans only**. When you (or someone you trust)
+have actually confirmed a place's real late-night behaviour, set exact `hours`,
+tags and `last_call`, then flip it. Machines propose, the owner disposes: a
+refresh run files a report against a verified place rather than editing it.
+
+Spend that badge carefully — it is the only reason to use this site over
+guessing.
 
 ### Supabase setup — do this once, or login does not work
 
@@ -148,30 +222,18 @@ Custom SMTP has a second benefit: Supabase's built-in email service is capped at
 **2 emails per hour** on the free tier, which is easy to hit while testing a
 login flow. Your own SMTP replaces that cap with the provider's.
 
-- **Queue** — anonymous submissions and corrections. Corrections show a diff;
-  use judgment, the reporter can be wrong. Approving a new place writes it to
-  `places` as `approved` / `source='community'`.
-- **Places** — inline edit, bulk approve, and the verify toggle.
-- **Reports** — wrong-timing reports and `osm_hours_drifted` rows filed by the
-  monthly refresh.
-
-### The ✓ badge is the whole brand
-
-`hours_verified` is flipped **by humans only**. When you (or someone you trust)
-have actually confirmed a place's real late-night behaviour, set exact `hours`,
-tags and `last_call`, then flip it. Machines propose, the owner disposes: the
-monthly refresh files a report against a verified place rather than editing it.
-
-Spend that badge carefully — it is the only reason to use this site over
-guessing.
-
 ---
 
-## Monthly refresh
+## OSM refresh (manual only)
 
-`.github/workflows/monthly-refresh.yml` — cron `0 22 1 * *` (03:30 IST on the
-1st), plus **Run workflow** for a manual run. It runs `seed-osm.ts --diff` and
-files the markdown report as a GitHub issue labeled `refresh-report`.
+`.github/workflows/monthly-refresh.yml` runs `seed-osm.ts --diff` and files the
+markdown report as a GitHub issue labeled `refresh-report`.
+
+**The monthly cron is switched off.** OSM turned out to be the weakest source —
+it produced dead entries, including a McDonald's that had been permanently
+closed for a while — and with hard delete now available, an automatic re-import
+would quietly resurrect rows you had deleted. So the workflow is
+`workflow_dispatch` only: it runs when you ask it to, never on a schedule.
 
 Repo secrets needed (Settings → Secrets and variables → Actions):
 `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
@@ -188,9 +250,15 @@ What it does with what it finds:
 | Changed | `hours_verified = true` | **Don't touch.** File an `osm_hours_drifted` report |
 | Gone | exists | **Never delete.** Report only |
 
-Read the issue each month and act only on drift reports for verified places.
-Nothing user-facing depends on this job — if Overpass is down, the affected
-areas are skipped and the report says so.
+Act only on drift reports for verified places. Nothing user-facing depends on
+this job — if Overpass is down, the affected areas are skipped and the report
+says so.
+
+> ⚠️ **Running it can bring back places you hard-deleted.** A deleted OSM row has
+> no tombstone, so a re-run sees it as new and re-inserts it as `pending`.
+> **Archive is the delete that survives re-seeding** — use it for anything you
+> want gone permanently, and save hard delete for junk you know no seeder will
+> re-fetch.
 
 > **Note on the runner:** the workflow deliberately does not set
 > `SUPABASE_DB_URL`. The seed scripts prefer a direct Postgres URL whenever they
@@ -214,6 +282,13 @@ npm run db:push                # apply
 
 Works over HTTPS with `SUPABASE_ACCESS_TOKEN` set, which is what makes it usable
 from CI and sandboxes. A direct `--url=postgres://…` wins when given.
+
+| Migration | What it does |
+|---|---|
+| `0001_init` | Tables, enums, indexes |
+| `0002_rls` | Row-level security policies |
+| `0003_nullable_pin` | `lat`/`lng` become nullable — community places have no pin |
+| `0004_scrape_hint` | Admin-only column for a scraped delivery window |
 
 ## Security model
 
@@ -288,18 +363,27 @@ Analytics tab; the `<Analytics />` component is already in the root layout.
   direction. Read the entry in `DECISIONS.md` before "fixing" it.
 - **Never cache "open now."** The dataset is cached for five minutes; the
   open/closed judgement is recomputed in the browser on a timer.
-- **Supabase Free pauses a project after ~1 week of inactivity.** Real traffic
-  keeps it awake and the monthly refresh helps, but neither is a guarantee for a
-  quiet month. If you ever see a paused project, add a weekly ping job to
-  `monthly-refresh.yml` — that's the documented first move.
+- **Supabase Free pauses a project after ~1 week of inactivity**, and now that
+  the refresh cron is off, nothing in this repo keeps it awake on a schedule.
+  Real traffic does; a quiet week may not. If you ever find a paused project,
+  add a weekly ping job to `monthly-refresh.yml` — that's the documented first
+  move.
+- **A hard-deleted OSM place comes back if you re-run `seed:osm`.** There is no
+  tombstone, so the re-run sees it as new. Archive instead when you want it gone
+  for good.
+- **Don't validate the sign-in code's length.** Supabase's OTP length is a
+  project setting, not a constant. The form once demanded exactly six digits
+  against a project issuing eight, which rejected valid codes *and* truncated
+  them as they were typed. `verifyOtp` is the only thing that can judge a code.
 
 ## Repo layout
 
 ```
-app/          routes — public pages, /admin, /api
+app/          routes — public pages, /admin, /api, /auth/callback
 components/   UI
-lib/          open-now engine, IST time, data access, validation, types
-scripts/      seeding, migrations, RLS tests
+lib/          open-now engine, IST time, data access, validation, types,
+              siteUrl (canonical origin), maps (Google link-outs)
+scripts/      seeding, scraping, migrations, RLS tests
 supabase/     migrations (source of truth)
 data/         manual-seed.csv, scrape sources, test fixtures
 docs/         the original build spec, 00 → 06

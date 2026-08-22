@@ -322,7 +322,10 @@ export async function setPlaceStatus(placeId: string, status: unknown): Promise<
  * Archive is the delete (docs/03): rows keep their `osm_id`, so the monthly
  * refresh recognises a dead place and does not re-import it as new.
  */
-export async function bulkSetPlaceStatus(placeIds: string[], status: unknown): Promise<ActionResult> {
+export async function bulkSetPlaceStatus(
+  placeIds: string[],
+  status: unknown,
+): Promise<ActionResult> {
   await requireAdmin();
   const ids = z.array(uuid).min(1).max(200).parse(placeIds);
   const next = placeStatusSchema.parse(status);
@@ -359,7 +362,10 @@ export async function deletePlaces(placeIds: string[]): Promise<ActionResult> {
 
   revalidateAdmin();
   revalidatePath('/places');
-  return { ok: true, message: `Deleted ${ids.length} place${ids.length === 1 ? '' : 's'} forever.` };
+  return {
+    ok: true,
+    message: `Deleted ${ids.length} place${ids.length === 1 ? '' : 's'} forever.`,
+  };
 }
 
 /* ---------------------------------------------------------------- reports -- */
