@@ -444,3 +444,18 @@ Newest at the bottom. Format: `date — decision — why`.
   column (migration 0004) shown beside the row while the owner verifies the real
   close via the Google card. Public queries never select the hint. Revisit
   delivery display only if user demand shows up.
+
+- **2026-08-24 — All scraping removed; the pipeline is manual.** The owner's call,
+  in his words: "keep this hella simple — user uploads and I approve." Every
+  automated inlet was built and tried first: OSM/Overpass seeding produced dead
+  businesses shown as open; the listicle scraper was never worth its upkeep; the
+  brand-site chain scraper worked for McDonald's but its hours were delivery
+  windows, not dine-in, and the next brand (Starbucks) would have meant
+  reverse-engineering a private ordering API. Each one added code, caveats and
+  verification burden for data the owner ended up re-checking by hand anyway.
+  Deleted: `seed-osm`, `scrape-leads`, `scrape-chains` and their libs, fixtures and
+  tests; the refresh workflow; the `scrape_hint` column (its migration was never
+  applied); the `cheerio` and `opening_hours` dependencies. Kept: `seed:manual`
+  (owner CSV), `seed:areas`, and the community submit → owner approve flow, which
+  is the whole product now. Hard delete no longer carries a re-seed caveat.
+  Existing rows keep `source='osm'`/`'scraped'` as provenance; the enum stays.

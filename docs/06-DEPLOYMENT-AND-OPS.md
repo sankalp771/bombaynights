@@ -22,10 +22,8 @@
 
 ## GitHub Actions
 
-`monthly-refresh.yml`: cron `0 22 1 * *` (03:30 IST on the 1st) + manual
-`workflow_dispatch`. Needs repo secrets: `SUPABASE_SERVICE_ROLE_KEY`,
-`NEXT_PUBLIC_SUPABASE_URL`. Behavior rules live in docs/03. Output: markdown
-report as a new GitHub issue labeled `refresh-report`.
+None. The monthly OSM refresh was removed on 2026-08-24 (DECISIONS.md) — no
+scheduled job touches the database.
 
 ## Operational runbook (goes into final README)
 
@@ -36,11 +34,6 @@ report as a new GitHub issue labeled `refresh-report`.
 - **Verify:** whenever you (or a trusted friend) confirm a place's real
   late-night behavior, set exact `hours`, tags, `last_call`, flip
   `hours_verified` — the ✓ badge is the brand, spend it carefully.
-- **Monthly:** read the refresh issue; act only on drift reports for verified
-  places.
-- **If Overpass fails** (it's a shared free service): the Action retries with
-  a mirror endpoint (kumi.systems); if both fail it exits gracefully and the
-  issue says so — nothing user-facing depends on it.
 
 ## Costs & limits sanity table
 
@@ -48,8 +41,7 @@ report as a new GitHub issue labeled `refresh-report`.
 |---|---|---|
 | Supabase | 500MB DB, 5GB egress | ~5k rows ≈ a few MB; cached reads keep egress tiny |
 | Vercel Hobby | 100GB bandwidth | Fine for a directory site |
-| Overpass | Fair-use | 13 queries/month + retries |
-| GitHub Actions | 2000 min/mo | ~5 min/mo |
+| GitHub Actions | 2000 min/mo | 0 — no jobs |
 
 If the site blows up in popularity, first move: put the places JSON behind
 ISR/static generation entirely (already close to that) before touching paid

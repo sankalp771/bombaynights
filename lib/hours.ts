@@ -3,8 +3,8 @@ import { parseHhMm } from './format';
 
 /**
  * The normalized weekly-hours format — the single source of truth for when a
- * place is open (docs/02). Raw OSM `opening_hours` strings are parsed into this
- * at seed time and never stored.
+ * place is open (docs/02). Hours arrive from the submit form, the admin editor
+ * or the owner's CSV, always already in this shape.
  *
  *   { "mon": [{ "open": "19:00", "close": "02:30" }], "sun": [] }
  *

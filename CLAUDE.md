@@ -20,7 +20,7 @@ Read the docs in this order before writing any code:
 
 - **Build phase by phase** (docs/05). Do not start a phase before the previous
   phase's acceptance criteria all pass. Commit at each phase boundary.
-- **₹0 infrastructure.** Free tiers only: Vercel Hobby, Supabase Free, OSM/Overpass,
+- **₹0 infrastructure.** Free tiers only: Vercel Hobby, Supabase Free,
   Leaflet + OSM tiles, GitHub Actions. Never add a paid API, never add Google Maps
   JS SDK or Places API (no billing account exists).
 - **Time zone is always `Asia/Kolkata`** for every open/closed computation,
@@ -38,7 +38,11 @@ Read the docs in this order before writing any code:
 - Mobile-first. The primary user is on a phone, outdoors, at 1 AM, possibly with
   one bar of network. Test every page at 390px width. Keep JS bundles small.
 - TypeScript strict mode. No `any`. Zod-validate every external input
-  (Overpass responses, form submissions, query params).
+  (form submissions, query params).
+- **All data is manual.** Places enter only through the public submit form
+  (the owner approves in `/admin`) or the owner's CSV (`seed:manual`). Do not
+  build scrapers, OSM seeding, or automated refresh jobs — they were built,
+  tried, and removed (DECISIONS 2026-08-24).
 
 ## Working style
 

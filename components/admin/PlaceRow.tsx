@@ -115,11 +115,6 @@ export function PlaceRow({
           {!editing ? (
             <p className="text-cream-muted mt-2 text-sm">{summariseHours(place.hours)}</p>
           ) : null}
-          {/* Admin-only breadcrumb from the scraper (e.g. a brand site's
-              delivery window) — a lead for verification, never public data. */}
-          {place.scrape_hint && !place.hours_verified ? (
-            <p className="text-sodium/80 mt-1 text-xs">🛵 {place.scrape_hint}</p>
-          ) : null}
         </div>
 
         {/* Triage tool: Google's card is the fastest liveness check we are

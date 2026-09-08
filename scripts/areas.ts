@@ -2,8 +2,8 @@ import { boundingBoxContains, haversineMetres, type BoundingBox, type LatLng } f
 
 /**
  * The Mira Road → Colaba corridor, north to south. This file is the single
- * source of truth for BOTH the `areas` table and the Overpass seed queries
- * (docs/03) — change an area here and both follow.
+ * source of truth for the `areas` table (docs/03) and for filing a place
+ * into an area by its coordinates.
  *
  * The latitude bands are deliberately contiguous: each area's `north` is the
  * next one's `south`, so no place in the corridor can fall through a gap. The

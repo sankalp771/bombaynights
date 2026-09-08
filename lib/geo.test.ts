@@ -3,7 +3,6 @@ import {
   boundingBoxContains,
   formatDistance,
   haversineMetres,
-  toOverpassBbox,
   type LatLng,
 } from './geo';
 
@@ -64,9 +63,5 @@ describe('bounding boxes', () => {
     expect(boundingBoxContains(box, { lat: 19.065, lng: 72.84 })).toBe(false);
     expect(boundingBoxContains(box, { lat: 19.05, lng: 72.86 })).toBe(false);
     expect(boundingBoxContains(box, { lat: 19.04, lng: 72.8 })).toBe(true);
-  });
-
-  it('serialises in Overpass order: south,west,north,east', () => {
-    expect(toOverpassBbox(box)).toBe('19.04,72.8,19.065,72.86');
   });
 });

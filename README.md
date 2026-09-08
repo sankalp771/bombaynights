@@ -7,8 +7,7 @@ community submissions, no login to browse.
 **Live:** https://bombaynights.vercel.app
 
 Built to run at ₹0/month: Next.js 15 on Vercel Hobby, Supabase Free (ap-south-1),
-OpenStreetMap data via Overpass, Leaflet + OSM tiles, GitHub Actions for the
-monthly refresh. There is no paid API anywhere in this repo and there is no
+Leaflet + OSM tiles. There is no paid API anywhere in this repo and there is no
 billing account behind it — keep it that way.
 
 ---
@@ -24,7 +23,7 @@ npm run dev                    # http://localhost:3000
 Checks:
 
 ```bash
-npm test          # 189 unit tests
+npm test          # unit tests
 npm run typecheck # tsc --noEmit, strict
 npm run lint
 npm run test:tz   # the whole suite under UTC, New York and Kolkata
@@ -68,36 +67,29 @@ entire sitemap of dead URLs — silently, since every page still rendered fine.
 
 ## How the data gets in
 
-Four inlets, described fully in `docs/03-DATA-AND-SEEDING.md`.
+Two ways, both human. Nothing is scraped and nothing runs on a schedule — the
+automated inlets were built, tried and removed (see `DECISIONS.md`, 2026-08-24).
+
+1. **Visitors submit** at `/submit` — name, area, address (copied from the
+   place's Google Maps card), tags, hours. It lands in the `/admin` queue;
+   nothing is public until you approve it.
+2. **You bulk-add** by appending to `data/manual-seed.csv` and running
+   `npm run seed:manual` (`--dry-run` to preview). CSV rows land as `approved`,
+   because you wrote them; hours still start unverified.
 
 ```bash
 npm run seed:areas    # the 13 corridor areas — run once
-npm run seed:osm      # Overpass → parse → classify → upsert (15–30 min)
 npm run seed:manual   # data/manual-seed.csv → upsert
-npm run scrape:leads  # listicle leads → submissions queue
 ```
-
-Every one of them takes `--dry-run` (fetch, report, write nothing). `seed:osm`
-also takes `--fixture=<file>` to work entirely offline and
-`--area=<slug>` to redo a single area.
-
-All seeding is **idempotent** — re-running inserts nothing new. If Overpass
-rate-limits you mid-run (it will; it's a shared free service), just re-run the
-area it dropped.
 
 Rules worth knowing:
 
-- OSM rows land as **`pending`**, never straight onto the site. Manual CSV rows
-  land as `approved`, because you wrote them.
-- Manual beats OSM within 150 m for the same name — that's the dedupe rule.
-- A place whose hours we can't parse is **never** shown as open. It reads
+- A CSV row takes over an older row within 150 m with the same name — the
+  dedupe rule — instead of creating a duplicate.
+- A place whose hours are unknown is **never** shown as open. It reads
   "Hours unverified".
-
-### Adding places yourself
-
-Append to `data/manual-seed.csv`, then `npm run seed:manual`. This is the
-highest-value thing you can do: OSM's Mumbai hours coverage is thin, and galli
-joints, car-dining spots and new lounges are simply not in it.
+- Verification is a link, not an API: every name and address links out to the
+  place's Google Maps card, and you judge from there.
 
 ---
 
@@ -151,53 +143,18 @@ login flow. Your own SMTP replaces that cap with the provider's.
 - **Queue** — anonymous submissions and corrections. Corrections show a diff;
   use judgment, the reporter can be wrong. Approving a new place writes it to
   `places` as `approved` / `source='community'`.
-- **Places** — inline edit, bulk approve, and the verify toggle.
-- **Reports** — wrong-timing reports and `osm_hours_drifted` rows filed by the
-  monthly refresh.
+- **Places** — inline edit, bulk approve / archive / delete, and the verify
+  toggle. Every row has a `Google ↗` link for a one-click liveness check.
+- **Reports** — wrong-timing reports from visitors.
 
 ### The ✓ badge is the whole brand
 
 `hours_verified` is flipped **by humans only**. When you (or someone you trust)
 have actually confirmed a place's real late-night behaviour, set exact `hours`,
-tags and `last_call`, then flip it. Machines propose, the owner disposes: the
-monthly refresh files a report against a verified place rather than editing it.
+tags and `last_call`, then flip it. Nothing automated ever edits a place.
 
 Spend that badge carefully — it is the only reason to use this site over
 guessing.
-
----
-
-## Monthly refresh
-
-`.github/workflows/monthly-refresh.yml` — cron `0 22 1 * *` (03:30 IST on the
-1st), plus **Run workflow** for a manual run. It runs `seed-osm.ts --diff` and
-files the markdown report as a GitHub issue labeled `refresh-report`.
-
-Repo secrets needed (Settings → Secrets and variables → Actions):
-`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-
-Manual runs take two optional inputs: **dry run** (write nothing — a safe first
-test) and **area** (redo one slug after an Overpass drop-out).
-
-What it does with what it finds:
-
-| In OSM | In our DB | Action |
-|---|---|---|
-| New | — | Insert as `pending` |
-| Changed | `hours_verified = false` | Update in place |
-| Changed | `hours_verified = true` | **Don't touch.** File an `osm_hours_drifted` report |
-| Gone | exists | **Never delete.** Report only |
-
-Read the issue each month and act only on drift reports for verified places.
-Nothing user-facing depends on this job — if Overpass is down, the affected
-areas are skipped and the report says so.
-
-> **Note on the runner:** the workflow deliberately does not set
-> `SUPABASE_DB_URL`. The seed scripts prefer a direct Postgres URL whenever they
-> see one, and GitHub runners can't open outbound port 5432 to Supabase — it
-> would hang, then fail. The HTTPS/PostgREST path is the one that works. Same
-> reason `npm run db:push` uses Supabase's Management API when
-> `SUPABASE_ACCESS_TOKEN` is set.
 
 ---
 
@@ -240,7 +197,6 @@ Phases 0–3 were built with no network at all:
 scripts/local-db.sh start
 npm run db:push -- --url=$(scripts/local-db.sh url) --local --fresh
 npm run seed:areas  -- --url=$(scripts/local-db.sh url)
-npm run seed:osm    -- --fixture=data/fixtures/overpass-sample.json --url=$(scripts/local-db.sh url)
 npm run seed:manual -- --url=$(scripts/local-db.sh url)
 ```
 
@@ -255,8 +211,8 @@ SUPABASE_DB_URL=postgresql://postgres@127.0.0.1:54329/postgres
 
 ## Tag vocabulary
 
-Fixed list, Zod-enforced in `lib/types.ts`. Don't add to it casually — filters,
-seeding and the OSM classifier all key off it.
+Fixed list, Zod-enforced in `lib/types.ts`. Don't add to it casually — filters
+and seeding key off it.
 
 **Venue:** `bar` `pub` `nightclub` `restaurant` `cafe` `street_food` `fast_food`
 `dessert` `bakery` `dhaba` `shisha_lounge` `rooftop` `24x7` `late_night`
@@ -283,15 +239,12 @@ Analytics tab; the `<Analytics />` component is already in the root layout.
 - **`pg` returns `Date` objects where PostgREST returns ISO strings.** Handled by
   a `z.preprocess` in `lib/types.ts` — keep new timestamp columns going through
   it.
-- **OSM rule-override semantics genuinely truncate closing times** at rule
-  boundaries. That reads as a bug and isn't one; under-stating is the safe
-  direction. Read the entry in `DECISIONS.md` before "fixing" it.
 - **Never cache "open now."** The dataset is cached for five minutes; the
   open/closed judgement is recomputed in the browser on a timer.
 - **Supabase Free pauses a project after ~1 week of inactivity.** Real traffic
-  keeps it awake and the monthly refresh helps, but neither is a guarantee for a
-  quiet month. If you ever see a paused project, add a weekly ping job to
-  `monthly-refresh.yml` — that's the documented first move.
+  keeps it awake, but that is no guarantee for a quiet month. If you ever see a
+  paused project, add a tiny weekly GitHub Action that fetches the homepage —
+  that's the documented first move.
 
 ## Repo layout
 
@@ -301,7 +254,7 @@ components/   UI
 lib/          open-now engine, IST time, data access, validation, types
 scripts/      seeding, migrations, RLS tests
 supabase/     migrations (source of truth)
-data/         manual-seed.csv, scrape sources, test fixtures
+data/         manual-seed.csv
 docs/         the original build spec, 00 → 06
 DECISIONS.md  append-only log of judgment calls and why
 ```
@@ -311,7 +264,7 @@ odd — most of the odd things are load-bearing.
 
 ## Attribution
 
-Place data from [OpenStreetMap](https://www.openstreetmap.org/copyright)
-contributors, [ODbL](https://opendatacommons.org/licenses/odbl/). Displaying
+Map tiles, and some older place rows, from
+[OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, [ODbL](https://opendatacommons.org/licenses/odbl/). Displaying
 this attribution on the map and in the footer is a licence requirement, not a
 courtesy — don't remove it.

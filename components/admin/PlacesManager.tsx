@@ -233,8 +233,8 @@ export function PlacesManager({
       )}
 
       <p className="text-cream-muted text-xs">
-        Statuses: {PLACE_STATUSES.join(' · ')}. Archive keeps the row (and survives an OSM re-seed);
-        Delete is forever — a later `seed:osm` run can re-insert a deleted OSM place.
+        Statuses: {PLACE_STATUSES.join(' · ')}. Archive keeps the row out of sight; Delete is
+        forever.
       </p>
     </section>
   );

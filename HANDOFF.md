@@ -1,5 +1,11 @@
 # HANDOFF — read this first
 
+> **Update 2026-08-24:** the data pipeline is now fully manual — the public
+> submit form → owner approval in `/admin`, plus `seed:manual` for the owner's
+> CSV. All scraping (OSM/Overpass seeding, listicle and brand-site scrapers) and
+> the monthly-refresh Action were removed. Mentions of `seed:osm`, Overpass, or
+> the refresh Action below are historical.
+
 State of the BombayNights build as of **2026-08-16**, for whoever (or whatever)
 picks it up next. Read `CLAUDE.md` and `docs/` for the spec; read `DECISIONS.md`
 for why things are the way they are. This file is just: where we got to, what is
@@ -104,7 +110,6 @@ Everything still runs offline, which is how phases 0–3 were built:
 scripts/local-db.sh start                     # local Postgres on :54329
 npm run db:push -- --url=$(scripts/local-db.sh url) --local --fresh
 npm run seed:areas -- --url=$(scripts/local-db.sh url)
-npm run seed:osm -- --fixture=data/fixtures/overpass-sample.json --url=$(scripts/local-db.sh url)
 npm run seed:manual -- --url=$(scripts/local-db.sh url)
 npm run rls:test -- --url=$(scripts/local-db.sh url)
 ```
@@ -121,10 +126,6 @@ SUPABASE_DB_URL=postgresql://postgres@127.0.0.1:54329/postgres
 - **Do not put `SUPABASE_DB_URL` in `.env.db.local` in a sandbox.** The seed
   scripts prefer a direct URL when they see one and will fail on it, because
   5432 is blocked. Leave it unset and they use Supabase over HTTPS.
-- **Overpass rate-limits mid-run.** A full `seed:osm` takes 15–30 minutes and
-  will drop one or two areas with "Overpass is unavailable". That is expected —
-  re-run the missed area alone (`-- --area=byculla-mumbai-central`). Seeding is
-  idempotent, so re-running costs nothing.
 - **`next build` overwrites `.next` under a running `next dev`.** Kill the dev
   server before building, or it 500s afterwards.
 - **`pg` returns `Date` objects where PostgREST returns ISO strings.** Handled by
