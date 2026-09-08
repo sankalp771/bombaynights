@@ -99,6 +99,46 @@ Rules worth knowing:
 is re-run inside every admin read and every Server Action, not once in a layout
 (a Server Action is a public endpoint that no layout runs before).
 
+- **Queue** — anonymous submissions and corrections. Corrections show a diff;
+  use judgment, the reporter can be wrong. Approving a new place writes it to
+  `places` as `approved` / `source='community'`. A submission needs no
+  coordinates to be approved.
+- **Places** — inline edit, bulk approve, the verify toggle, and archive or
+  hard delete (per-row and bulk, two-tap confirm).
+- **Reports** — wrong-timing reports from visitors, plus `osm_hours_drifted`
+  rows filed by a refresh run.
+
+### Verify with the Google card
+
+Every place name and address in the admin links out to that place's Google Maps
+card. That one gesture shows liveness, current hours and location together —
+including a "Permanently closed" banner, which is how a dead McDonald's got
+caught in the OSM leads. It is the intended verification step, not a shortcut.
+
+Where a chain outlet was seeded from a brand's delivery site, its ordering
+window sits beside the row as a `scrape_hint`. Treat it as a lead, not an
+answer: confirm the real dine-in close on the Google card before you set `hours`.
+
+### Archive vs delete
+
+**Archive is the delete that survives re-seeding.** A hard-deleted row leaves no
+tombstone, so a later `seed:osm` re-run sees it as new and re-inserts it as
+pending. Archive marks it dead permanently.
+
+Hard delete exists because the OSM cron is off — nothing re-imports on a
+schedule any more. Use it for junk no seeder will re-fetch, and archive for
+anything you want gone for good.
+
+### The ✓ badge is the whole brand
+
+`hours_verified` is flipped **by humans only**. When you (or someone you trust)
+have actually confirmed a place's real late-night behaviour, set exact `hours`,
+tags and `last_call`, then flip it. Machines propose, the owner disposes: a
+refresh run files a report against a verified place rather than editing it.
+
+Spend that badge carefully — it is the only reason to use this site over
+guessing.
+
 ### Supabase setup — do this once, or login does not work
 
 `signInWithOtp` sends exactly one email, and **the project's email template
@@ -171,6 +211,13 @@ npm run db:push                # apply
 
 Works over HTTPS with `SUPABASE_ACCESS_TOKEN` set, which is what makes it usable
 from CI and sandboxes. A direct `--url=postgres://…` wins when given.
+
+| Migration | What it does |
+|---|---|
+| `0001_init` | Tables, enums, indexes |
+| `0002_rls` | Row-level security policies |
+| `0003_nullable_pin` | `lat`/`lng` become nullable — community places have no pin |
+| `0004_scrape_hint` | Admin-only column for a scraped delivery window |
 
 ## Security model
 
@@ -249,10 +296,11 @@ Analytics tab; the `<Analytics />` component is already in the root layout.
 ## Repo layout
 
 ```
-app/          routes — public pages, /admin, /api
+app/          routes — public pages, /admin, /api, /auth/callback
 components/   UI
-lib/          open-now engine, IST time, data access, validation, types
-scripts/      seeding, migrations, RLS tests
+lib/          open-now engine, IST time, data access, validation, types,
+              siteUrl (canonical origin), maps (Google link-outs)
+scripts/      seeding, scraping, migrations, RLS tests
 supabase/     migrations (source of truth)
 data/         manual-seed.csv
 docs/         the original build spec, 00 → 06
