@@ -346,12 +346,10 @@ export async function bulkSetPlaceStatus(
 }
 
 /**
- * Hard delete, unlocked once the OSM refresh cron was switched off (DECISIONS
- * 2026-08-18) — with no automatic re-import, deleted rows stay deleted. The
- * remaining caveat: a manual `seed:osm` run can still re-insert a deleted OSM
- * place, so prefer Archive for OSM rows you want to stay dead through re-seeds.
- * FKs are safe: reports cascade, submissions keep their payload (place_id
- * nulls out).
+ * Hard delete. Nothing re-imports places automatically — every row enters
+ * through the submit form or the owner's CSV (DECISIONS 2026-08-24) — so a
+ * deleted row stays deleted. FKs are safe: reports cascade, submissions keep
+ * their payload (place_id nulls out).
  */
 export async function deletePlaces(placeIds: string[]): Promise<ActionResult> {
   await requireAdmin();

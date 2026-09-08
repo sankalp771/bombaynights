@@ -56,8 +56,3 @@ export function boundingBoxContains(box: BoundingBox, point: LatLng): boolean {
     point.lat >= box.south && point.lat < box.north && point.lng >= box.west && point.lng < box.east
   );
 }
-
-/** Overpass wants `south,west,north,east`. */
-export function toOverpassBbox(box: BoundingBox): string {
-  return `${box.south},${box.west},${box.north},${box.east}`;
-}

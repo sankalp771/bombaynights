@@ -1,5 +1,10 @@
 # 03 — Data & Seeding (no Google, ₹0)
 
+> **Superseded 2026-08-24.** Inlet 1 (OSM/Overpass), Inlet 4 (listicle scraper),
+> a later brand-site chain scraper, and the monthly refresh were all built, tried,
+> and removed — see DECISIONS.md. The live pipeline is **Inlet 2** (owner CSV) +
+> **Inlet 3** (community submissions → owner approval). The rest is kept for history.
+
 Three inlets, one table. Everything lands in `places` with the right `source`
 and `status='pending'` (owner approves in `/admin`). Seeded places with
 plausible late-night hours can be bulk-approved but stay `hours_verified=false`

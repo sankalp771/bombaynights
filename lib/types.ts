@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { nullableWeeklyHoursSchema } from './hours';
 
 /**
- * The shared vocabulary. Everything that crosses a boundary — Overpass
- * responses, CSV rows, form posts, query params — is validated against these,
+ * The shared vocabulary. Everything that crosses a boundary — CSV rows,
+ * form posts, query params — is validated against these,
  * per CLAUDE.md.
  */
 
@@ -164,12 +164,6 @@ export const placeSchema = z.object({
   // pin stays off the map and sorts last in "near me"; everything else works.
   lat: z.number().nullable(),
   lng: z.number().nullable(),
-  /**
-   * Machine-scraped breadcrumb for the owner (e.g. a brand site's delivery
-   * window). Admin-only: `hours` always means verified-able VISIT hours, and
-   * public queries never select this column.
-   */
-  scrape_hint: z.string().nullable().catch(null),
   categories: z.array(z.string()),
   food_type: foodTypeSchema,
   serves_alcohol: z.boolean().nullable(),
